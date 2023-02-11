@@ -1,0 +1,22 @@
+{
+  "canisters": {
+    "file_scaling_manager": {
+      "main": "src/FileScalingManager.mo",
+      "type": "motoko",
+      "dependencies": []
+    },
+    "file_storage": {
+      "main": "src/FileStorage.mo",
+      "type": "motoko",
+      "dependencies": []
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.12.0",
+  "version": 1
+}
