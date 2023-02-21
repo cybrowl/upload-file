@@ -99,3 +99,9 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of file to can
 
   t.equal(hasChunkIds, true);
 });
+
+test("FileStorage[motoko].list_assets(): should return all assets without file content data since it would be too large", async function (t) {
+  const response = await file_storage_actors.motoko.list_assets();
+
+  console.log("response: ", response);
+});

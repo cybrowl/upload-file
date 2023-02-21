@@ -9,6 +9,7 @@ import Order "mo:base/Order";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
+import Iter "mo:base/Iter";
 import Time "mo:base/Time";
 
 import Types "./types";
@@ -73,6 +74,7 @@ actor class FileStorage() = this {
 
 		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);
+		var content_size = 0;
 
 		for (chunk in chunks.vals()) {
 			if (chunk.batch_id == batch_id) {
@@ -84,6 +86,7 @@ actor class FileStorage() = this {
 
 		for (chunk in chunks_to_commit.vals()) {
 			asset_content.add(chunk.content);
+			content_size := content_size + chunk.content.size();
 		};
 
 		// check validity of file
@@ -96,7 +99,7 @@ actor class FileStorage() = this {
 			content_type = asset_properties.content_type;
 			created = Time.now();
 			content = Option.make(Buffer.toArray(asset_content));
-			content_size = asset_content.size();
+			content_size = content_size;
 			file_name = asset_properties.file_name;
 			id = asset_id_count;
 			owner = caller;
@@ -107,7 +110,19 @@ actor class FileStorage() = this {
 		return #ok(asset.id);
 	};
 
-	// func list_assets -- should return all the assets in canister without content
+	public query func list_assets() : async Result.Result<[Asset], Text> {
+		var assets_list = Buffer.Buffer<Asset>(0);
+
+		for (asset in assets.vals()) {
+			let asset_without_content : Asset = {
+				asset with content = null;
+			};
+
+			assets_list.add(asset_without_content);
+		};
+
+		return #ok(Buffer.toArray(assets_list));
+	};
 
 	public query func get(id : Asset_ID) : async Result.Result<Asset, Text> {
 		switch (assets.get(id)) {
