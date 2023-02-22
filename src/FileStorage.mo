@@ -9,7 +9,6 @@ import Order "mo:base/Order";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
-import Iter "mo:base/Iter";
 import Time "mo:base/Time";
 
 import Types "./types";
