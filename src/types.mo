@@ -10,6 +10,7 @@ module {
 		content : Blob;
 		created : Int;
 		file_name : Text;
+		id : Nat;
 		order : Nat;
 		owner : Principal;
 	};
@@ -23,10 +24,11 @@ module {
 
 	public type Asset = {
 		canister_id : Text;
-		content_type : Text;
-		created : Int;
+		chunks_size : Nat;
 		content : ?[Blob];
 		content_size : Nat;
+		content_type : Text;
+		created : Int;
 		file_name : Text;
 		id : Nat;
 		owner : Principal;

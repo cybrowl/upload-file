@@ -61,6 +61,7 @@ actor class FileStorage() = this {
 			content = content;
 			created = Time.now();
 			file_name = "";
+			id = chunk_id_count;
 			order = order;
 			owner = caller;
 		};
@@ -89,8 +90,11 @@ actor class FileStorage() = this {
 			content_size := content_size + chunk.content.size();
 		};
 
-		// check validity of file
-		// remove chunks from chunks hashmap
+		// TODO: check validity of file prob using sha256
+
+		for (chunk in chunks_to_commit.vals()) {
+			chunks.delete(chunk.id);
+		};
 
 		asset_id_count := asset_id_count + 1;
 
@@ -99,6 +103,7 @@ actor class FileStorage() = this {
 			content_type = asset_properties.content_type;
 			created = Time.now();
 			content = Option.make(Buffer.toArray(asset_content));
+			chunks_size = asset_content.size();
 			content_size = content_size;
 			file_name = asset_properties.file_name;
 			id = asset_id_count;
@@ -165,7 +170,7 @@ actor class FileStorage() = this {
 					streaming_strategy = create_strategy({
 						asset_id = asset_id;
 						chunk_index = 0;
-						data_chunks_size = asset.content_size;
+						data_chunks_size = asset.chunks_size;
 					});
 				};
 			};
@@ -222,7 +227,7 @@ actor class FileStorage() = this {
 					token = create_token({
 						asset_id = st.asset_id;
 						chunk_index = st.chunk_index;
-						data_chunks_size = asset.content_size;
+						data_chunks_size = asset.chunks_size;
 					});
 					body = Option.get(asset.content, [])[st.chunk_index];
 				};
