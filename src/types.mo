@@ -31,7 +31,7 @@ module {
 		created : Int;
 		file_name : Text;
 		id : Nat;
-		owner : Principal;
+		owner : Text;
 	};
 
 	type HeaderField = (Text, Text);
@@ -72,5 +72,9 @@ module {
 	public type StreamingCallbackHttpResponse = {
 		body : Blob;
 		token : ?StreamingCallbackToken;
+	};
+
+	public type FileStorageActor = actor {
+		is_full : shared () -> async Bool;
 	};
 };

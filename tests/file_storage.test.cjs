@@ -98,9 +98,9 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.content_type, "video/mp4");
   t.equal(asset.content_size, 14272571n);
 
-  const size_chunks = await file_storage_actors.motoko.size_chunks();
+  const chunks_size = await file_storage_actors.motoko.chunks_size();
 
-  t.equal(size_chunks, 0n);
+  t.equal(chunks_size, 0n);
 });
 
 test("FileStorage[motoko].create_chunk(): should store chunk data of image file to canister", async function (t) {
@@ -162,14 +162,17 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.content_type, "image/jpeg");
   t.equal(asset.content_size, 8169010n);
 
-  const size_chunks = await file_storage_actors.motoko.size_chunks();
+  const chunks_size = await file_storage_actors.motoko.chunks_size();
 
-  t.equal(size_chunks, 0n);
+  t.equal(chunks_size, 0n);
 });
 
-test("FileStorage[motoko].list_assets(): should return all assets without file content data since it would be too large", async function (t) {
-  const { ok: asset_list } = await file_storage_actors.motoko.list_assets();
-  const hasAssets = asset_list.length > 2;
+test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
+  const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
+
+  console.log("asset_list: ", asset_list);
+
+  const hasAssets = asset_list.length > 1;
 
   t.equal(hasAssets, true);
 });

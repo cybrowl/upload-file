@@ -1,11 +1,13 @@
 import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Error "mo:base/Error";
+import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Nat "mo:base/Nat";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
+import Prim "mo:prim";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
@@ -76,6 +78,8 @@ actor class FileStorage() = this {
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
 
+		//TODO: check chunks belong to caller
+
 		for (chunk in chunks.vals()) {
 			if (chunk.batch_id == batch_id) {
 				chunks_to_commit.add(chunk);
@@ -106,7 +110,7 @@ actor class FileStorage() = this {
 			content_size = content_size;
 			file_name = asset_properties.file_name;
 			id = asset_id_count;
-			owner = caller;
+			owner = debug_show (caller);
 		};
 
 		assets.put(asset_id_count, asset);
@@ -114,7 +118,7 @@ actor class FileStorage() = this {
 		return #ok(asset.id);
 	};
 
-	public query func list_assets() : async Result.Result<[Asset], Text> {
+	public query func assets_list() : async Result.Result<[Asset], Text> {
 		var assets_list = Buffer.Buffer<Asset>(0);
 
 		for (asset in assets.vals()) {
@@ -143,8 +147,22 @@ actor class FileStorage() = this {
 		};
 	};
 
-	public query func size_chunks() : async Nat {
+	public query func chunks_size() : async Nat {
 		return chunks.size();
+	};
+
+	public query func is_full() : async Bool {
+		let MAX_SIZE_THRESHOLD_MB : Float = 2000;
+
+		let rts_memory_size : Nat = Prim.rts_memory_size();
+		let mem_size : Float = Float.fromInt(rts_memory_size);
+		let memory_in_megabytes = Float.abs(mem_size * 0.000001);
+
+		if (memory_in_megabytes > MAX_SIZE_THRESHOLD_MB) {
+			return true;
+		} else {
+			return false;
+		};
 	};
 
 	// ------------------------- Get Asset HTTP -------------------------

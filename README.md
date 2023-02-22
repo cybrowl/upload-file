@@ -22,5 +22,10 @@ Furthermore, the capability to visualize the file chunking process in various fr
 
 `dfx deploy file_storage`
 
+## Testing
+
+`npm run test-fs`
+
 or
-//TODO: script
+
+//TODO: script for setup
