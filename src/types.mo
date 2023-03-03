@@ -32,6 +32,7 @@ module {
 		file_name : Text;
 		id : Nat;
 		owner : Text;
+		url : Text;
 	};
 
 	type HeaderField = (Text, Text);

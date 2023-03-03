@@ -28,6 +28,9 @@ actor class FileStorage() = this {
 	let ACTOR_NAME : Text = "FileStorage";
 	let VERSION : Nat = 1;
 
+	// change me when in production
+	let IS_PROD : Bool = false;
+
 	private var asset_id_count : Asset_ID = 0;
 	private let assets : HashMap.HashMap<Asset_ID, Asset> = HashMap.HashMap<Asset_ID, Asset>(
 		0,
@@ -73,7 +76,7 @@ actor class FileStorage() = this {
 	};
 
 	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Nat, Text> {
-
+		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
@@ -102,14 +105,19 @@ actor class FileStorage() = this {
 		asset_id_count := asset_id_count + 1;
 
 		let asset : Types.Asset = {
-			canister_id = "";
+			canister_id = CANISTER_ID;
+			chunks_size = asset_content.size();
+			content = Option.make(Buffer.toArray(asset_content));
+			content_size = content_size;
 			content_type = asset_properties.content_type;
 			created = Time.now();
-			content = Option.make(Buffer.toArray(asset_content));
-			chunks_size = asset_content.size();
-			content_size = content_size;
 			file_name = asset_properties.file_name;
 			id = asset_id_count;
+			url = Utils.generate_asset_url({
+				asset_id = Nat.toText(asset_id_count);
+				canister_id = CANISTER_ID;
+				is_prod = IS_PROD;
+			});
 			owner = debug_show (caller);
 		};
 
