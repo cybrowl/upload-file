@@ -37,13 +37,11 @@ let success = run([
             it(
                 "should generate uuid",
                 do {
-                    // let uuid = Utils.generate_uuid();
+                    let uuid = Utils.generate_uuid();
 
-                    Debug.print(debug_show (Utils.random_from_time()));
+                    let has_val = Nat.equal(uuid.size(), 32);
 
-                    // let has_val = Nat.equal(uuid.size(), 32);
-
-                    assertTrue(true);
+                    assertTrue(has_val);
                 },
             ),
         ],

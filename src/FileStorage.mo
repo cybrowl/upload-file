@@ -10,7 +10,6 @@ import Order "mo:base/Order";
 import Prim "mo:prim";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Random "mo:base/Random";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
@@ -76,9 +75,8 @@ actor class FileStorage() = this {
 	};
 
 	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Text, Text> {
-		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
-
 		let ASSET_ID = Utils.generate_uuid();
+		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
 		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);

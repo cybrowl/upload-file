@@ -1,13 +1,13 @@
 import { Buffer; toArray } "mo:base/Buffer";
 import Debug "mo:base/Debug";
+import Hash "mo:base/Hash";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
-import Hash "mo:base/Hash";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import Nat32 "mo:base/Nat32";
 
 module {
     private type GenerateAssetUrlArgs = {
