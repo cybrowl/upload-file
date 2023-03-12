@@ -1,12 +1,12 @@
 import Cycles "mo:base/ExperimentalCycles";
 import HashMap "mo:base/HashMap";
+import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 import FileStorage "FileStorage";
 import Types "./types";
-import Debug "mo:base/Debug";
 
 actor FileScalingManager = {
 	let ACTOR_NAME : Text = "FileScalingManager";
@@ -60,6 +60,10 @@ actor FileScalingManager = {
 				return file_storage_canister_id;
 			};
 		};
+	};
+
+	public query func get_canister_records() : async [CanisterInfo] {
+		return Iter.toArray(canister_records.vals());
 	};
 
 	public shared ({ caller }) func init() : async Text {

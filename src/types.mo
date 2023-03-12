@@ -2,7 +2,7 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 
 module {
-	public type Asset_ID = Nat;
+	public type Asset_ID = Text;
 	public type Chunk_ID = Nat;
 
 	public type AssetChunk = {
@@ -30,7 +30,7 @@ module {
 		content_type : Text;
 		created : Int;
 		file_name : Text;
-		id : Nat;
+		id : Text;
 		owner : Text;
 		url : Text;
 	};
@@ -52,13 +52,13 @@ module {
 	};
 
 	public type CreateStrategyArgs = {
-		asset_id : Nat;
+		asset_id : Text;
 		chunk_index : Nat;
 		data_chunks_size : Nat;
 	};
 
 	public type StreamingCallbackToken = {
-		asset_id : Nat;
+		asset_id : Text;
 		chunk_index : Nat;
 		content_encoding : Text;
 	};

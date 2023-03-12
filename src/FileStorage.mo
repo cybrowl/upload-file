@@ -10,6 +10,7 @@ import Order "mo:base/Order";
 import Prim "mo:prim";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Random "mo:base/Random";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
@@ -31,11 +32,10 @@ actor class FileStorage() = this {
 	// change me when in production
 	let IS_PROD : Bool = false;
 
-	private var asset_id_count : Asset_ID = 0;
 	private let assets : HashMap.HashMap<Asset_ID, Asset> = HashMap.HashMap<Asset_ID, Asset>(
 		0,
-		Nat.equal,
-		Hash.hash,
+		Text.equal,
+		Text.hash,
 	);
 
 	private var chunk_id_count : Chunk_ID = 0;
@@ -75,8 +75,11 @@ actor class FileStorage() = this {
 		return chunk_id_count;
 	};
 
-	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Nat, Text> {
+	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Text, Text> {
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
+
+		let ASSET_ID = Utils.generate_uuid();
+
 		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
@@ -102,8 +105,6 @@ actor class FileStorage() = this {
 			chunks.delete(chunk.id);
 		};
 
-		asset_id_count := asset_id_count + 1;
-
 		let asset : Types.Asset = {
 			canister_id = CANISTER_ID;
 			chunks_size = asset_content.size();
@@ -112,16 +113,16 @@ actor class FileStorage() = this {
 			content_type = asset_properties.content_type;
 			created = Time.now();
 			file_name = asset_properties.file_name;
-			id = asset_id_count;
+			id = ASSET_ID;
 			url = Utils.generate_asset_url({
-				asset_id = Nat.toText(asset_id_count);
+				asset_id = ASSET_ID;
 				canister_id = CANISTER_ID;
 				is_prod = IS_PROD;
 			});
 			owner = debug_show (caller);
 		};
 
-		assets.put(asset_id_count, asset);
+		assets.put(ASSET_ID, asset);
 
 		return #ok(asset.id);
 	};
@@ -246,7 +247,7 @@ actor class FileStorage() = this {
 		st : Types.StreamingCallbackToken,
 	) : async Types.StreamingCallbackHttpResponse {
 		switch (assets.get(st.asset_id)) {
-			case (null) throw Error.reject("asset_id not found: " # Nat.toText(st.asset_id));
+			case (null) throw Error.reject("asset_id not found: " # st.asset_id);
 			case (?asset) {
 				return {
 					token = create_token({

@@ -52,7 +52,7 @@ test("FileScalingManager[motoko].init(): should create file_storage_canister", a
   t.equal(responded, true);
 });
 
-test("FileScalingManager[motoko].init(): should create file_storage_canister", async function (t) {
+test("FileScalingManager[motoko].init(): should return file_storage_canister exists", async function (t) {
   const response = await file_scaling_manager_actors.motoko.init();
 
   t.equal(response, "file storage canister already exists");
@@ -67,9 +67,12 @@ test("FileScalingManager[motoko].get_file_storage_canister_id(): should get cani
 
 test("Setup Actors", async function (t) {
   console.log("=========== File Storage ===========");
+
+  // Get Canister Id from File Scaling Manager
   const canister_id =
     await file_scaling_manager_actors.motoko.get_file_storage_canister_id();
 
+  // Setup Actor with Canister Id
   file_storage_actors.motoko = await getActor(
     canister_id,
     file_storage_interface,
@@ -153,6 +156,17 @@ test("FileStorage[motoko].assets_list(): should return all assets without file c
   console.log("asset_list: ", asset_list);
 
   const hasAssets = asset_list.length > 0;
+
+  t.equal(hasAssets, true);
+});
+
+test("FileScalingManager[motoko].get_canister_records(): should return all canister records", async function (t) {
+  const records =
+    await file_scaling_manager_actors.motoko.get_canister_records();
+
+  console.log("records: ", records);
+
+  const hasAssets = records.length > 0;
 
   t.equal(hasAssets, true);
 });
