@@ -41,15 +41,13 @@ module {
     };
 
     public func random_from_time() : [Nat] {
-        let seed = Time.now();
-
         var randomness = Buffer<Nat>(0);
 
-        let one = Nat32.toNat(Hash.hash(Int.abs(Time.now())));
+        let seed = Nat32.toNat(Hash.hash(Int.abs(Time.now())));
 
         for (i in Iter.range(0, 32)) {
             if (i == 0) {
-                randomness.add(one);
+                randomness.add(seed);
             } else {
                 let prev = randomness.get(i - 1);
                 let next = Nat32.toNat(Hash.hash(prev));

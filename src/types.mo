@@ -9,7 +9,7 @@ module {
 		batch_id : Text;
 		content : Blob;
 		created : Int;
-		file_name : Text;
+		filename : Text;
 		id : Nat;
 		order : Nat;
 		owner : Principal;
@@ -19,7 +19,7 @@ module {
 		// sha256 : Text;
 		content_encoding : Text;
 		content_type : Text;
-		file_name : Text;
+		filename : Text;
 	};
 
 	public type Asset = {
@@ -29,7 +29,7 @@ module {
 		content_size : Nat;
 		content_type : Text;
 		created : Int;
-		file_name : Text;
+		filename : Text;
 		id : Text;
 		owner : Text;
 		url : Text;

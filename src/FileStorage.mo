@@ -63,7 +63,7 @@ actor class FileStorage() = this {
 			batch_id = batch_id;
 			content = content;
 			created = Time.now();
-			file_name = "";
+			filename = "";
 			id = chunk_id_count;
 			order = order;
 			owner = caller;
@@ -110,7 +110,7 @@ actor class FileStorage() = this {
 			content_size = content_size;
 			content_type = asset_properties.content_type;
 			created = Time.now();
-			file_name = asset_properties.file_name;
+			filename = asset_properties.filename;
 			id = ASSET_ID;
 			url = Utils.generate_asset_url({
 				asset_id = ASSET_ID;
@@ -180,14 +180,14 @@ actor class FileStorage() = this {
 
 		switch (assets.get(asset_id)) {
 			case (?asset) {
-				let file_name = Text.concat("attachment; filename=", asset.file_name);
+				let filename = Text.concat("attachment; filename=", asset.filename);
 
 				return {
 					body = Blob.toArray(Option.get(asset.content, [])[0]);
 					headers = [
 						("Content-Type", asset.content_type),
 						("accept-ranges", "bytes"),
-						("Content-Disposition", file_name),
+						("Content-Disposition", filename),
 						("cache-control", "private, max-age=0"),
 					];
 					status_code = 200;

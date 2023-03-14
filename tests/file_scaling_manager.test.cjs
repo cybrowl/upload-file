@@ -126,14 +126,14 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
 test("FileStorage[motoko].commit_batch(): should start formation of asset to be stored", async function (t) {
   const file_path = "tests/data/bots.mp4";
 
-  const asset_file_name = path.basename(file_path);
+  const asset_filename = path.basename(file_path);
   const asset_content_type = mime.getType(file_path);
 
   const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
     batch_id,
     chunk_ids,
     {
-      file_name: asset_file_name,
+      filename: asset_filename,
       content_encoding: "gzip",
       content_type: asset_content_type,
     }
@@ -141,7 +141,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 
   const { ok: asset } = await file_storage_actors.motoko.get(asset_id);
 
-  t.equal(asset.file_name, "bots.mp4");
+  t.equal(asset.filename, "bots.mp4");
   t.equal(asset.content_type, "video/mp4");
   t.equal(asset.content_size, 14272571n);
 
