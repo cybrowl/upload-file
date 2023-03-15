@@ -38,7 +38,7 @@ actor class FileStorage() = this {
 	);
 
 	private var chunk_id_count : Chunk_ID = 0;
-	private let chunks : HashMap.HashMap<Chunk_ID, AssetChunk> = HashMap.HashMap<Chunk_ID, AssetChunk>(
+	private var chunks : HashMap.HashMap<Chunk_ID, AssetChunk> = HashMap.HashMap<Chunk_ID, AssetChunk>(
 		0,
 		Nat.equal,
 		Hash.hash,
@@ -123,6 +123,30 @@ actor class FileStorage() = this {
 		assets.put(ASSET_ID, asset);
 
 		return #ok(asset.id);
+	};
+
+	public shared ({ caller }) func delete_asset(id : Asset_ID) : async Result.Result<Text, Text> {
+		switch (assets.get(id)) {
+			case (?asset) {
+				if (asset.owner == Principal.toText(caller)) {
+					assets.delete(id);
+					return #ok("Asset deleted successfully.");
+				} else {
+					return #err("Permission denied: You are not the owner of this asset.");
+				};
+			};
+			case (_) {
+				return #err("Asset not found.");
+			};
+		};
+	};
+
+	public shared ({ caller }) func clear_chunks() : async () {
+		chunks := HashMap.HashMap<Chunk_ID, AssetChunk>(
+			0,
+			Nat.equal,
+			Hash.hash,
+		);
 	};
 
 	public query func assets_list() : async Result.Result<[Asset], Text> {

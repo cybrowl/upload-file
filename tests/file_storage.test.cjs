@@ -170,9 +170,94 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
   const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
 
-  console.log("asset_list: ", asset_list);
-
   const hasAssets = asset_list.length > 1;
 
   t.equal(hasAssets, true);
+});
+
+test("FileStorage[motoko].delete_asset(): should delete an asset", async function (t) {
+  // Upload an asset
+  const file_path = "tests/data/poked_1.jpeg";
+  const asset_buffer = fs.readFileSync(file_path);
+  const asset_unit8Array = new Uint8Array(asset_buffer);
+  const asset_filename = path.basename(file_path);
+  const asset_content_type = mime.getType(file_path);
+  const batch_id = Math.random().toString(36).substring(2, 7);
+
+  const chunk_id = await file_storage_actors.motoko.create_chunk(
+    batch_id,
+    asset_unit8Array,
+    0
+  );
+  const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
+    batch_id,
+    [chunk_id],
+    {
+      filename: asset_filename,
+      content_encoding: "gzip",
+      content_type: asset_content_type,
+    }
+  );
+
+  // Delete the asset
+  const { ok: delete_result } = await file_storage_actors.motoko.delete_asset(
+    asset_id
+  );
+  t.equal(delete_result, "Asset deleted successfully.");
+
+  // Check if the asset is no longer in the assets list
+  const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
+  const deleted_asset = asset_list.find((asset) => asset.id === asset_id);
+  t.equal(deleted_asset, undefined);
+});
+
+test("FileStorage[motoko].create_chunk(): should store chunk data for clearing test", async function (t) {
+  batch_id = Math.random().toString(36).substring(2, 7);
+
+  const uploadChunk = async ({ chunk, order }) => {
+    return file_storage_actors.motoko.create_chunk(batch_id, chunk, order);
+  };
+
+  const file_path = "tests/data/poked_3.jpeg";
+
+  const asset_buffer = fs.readFileSync(file_path);
+  const asset_unit8Array = new Uint8Array(asset_buffer);
+
+  const promises = [];
+  const chunkSize = 2000000;
+
+  for (
+    let start = 0, index = 0;
+    start < asset_unit8Array.length;
+    start += chunkSize, index++
+  ) {
+    const chunk = asset_unit8Array.slice(start, start + chunkSize);
+
+    promises.push(
+      uploadChunk({
+        chunk,
+        order: index,
+      })
+    );
+  }
+
+  chunk_ids = await Promise.all(promises);
+
+  const hasChunkIds = chunk_ids.length > 2;
+
+  t.equal(hasChunkIds, true);
+});
+
+test("FileStorage[motoko].chunks_size(): should return non-zero size before clearing", async function (t) {
+  const chunks_size = await file_storage_actors.motoko.chunks_size();
+
+  t.notEqual(chunks_size, 0n);
+});
+
+test("FileStorage[motoko].clear_chunks(): should clear all chunks", async function (t) {
+  await file_storage_actors.motoko.clear_chunks();
+
+  const chunks_size = await file_storage_actors.motoko.chunks_size();
+
+  t.equal(chunks_size, 0n);
 });
