@@ -261,3 +261,9 @@ test("FileStorage[motoko].clear_chunks(): should clear all chunks", async functi
 
   t.equal(chunks_size, 0n);
 });
+
+test("FileStorage[motoko].is_full(): should return false when memory usage is below threshold", async function (t) {
+  const response = await file_storage_actors.motoko.is_full();
+
+  t.equal(response, false);
+});
