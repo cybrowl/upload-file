@@ -4,6 +4,7 @@ import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
+import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -31,11 +32,12 @@ actor class FileStorage() = this {
 	// change me when in production
 	let IS_PROD : Bool = false;
 
-	private let assets : HashMap.HashMap<Asset_ID, Asset> = HashMap.HashMap<Asset_ID, Asset>(
+	private var assets : HashMap.HashMap<Asset_ID, Asset> = HashMap.HashMap<Asset_ID, Asset>(
 		0,
 		Text.equal,
 		Text.hash,
 	);
+	stable var assets_stable_storage : [(Asset_ID, Asset)] = [];
 
 	private var chunk_id_count : Chunk_ID = 0;
 	private var chunks : HashMap.HashMap<Chunk_ID, AssetChunk> = HashMap.HashMap<Chunk_ID, AssetChunk>(
@@ -74,7 +76,7 @@ actor class FileStorage() = this {
 		return chunk_id_count;
 	};
 
-	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Text, Text> {
+	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
@@ -266,7 +268,7 @@ actor class FileStorage() = this {
 	};
 
 	public shared query ({ caller }) func http_request_streaming_callback(
-		st : Types.StreamingCallbackToken,
+		st : Types.StreamingCallbackToken
 	) : async Types.StreamingCallbackHttpResponse {
 		switch (assets.get(st.asset_id)) {
 			case (null) throw Error.reject("asset_id not found: " # st.asset_id);
@@ -286,5 +288,20 @@ actor class FileStorage() = this {
 	// ------------------------- Canister Management -------------------------
 	public query func version() : async Nat {
 		return VERSION;
+	};
+
+	// ------------------------- SYSTEM METHODS -------------------------
+	system func preupgrade() {
+		assets_stable_storage := Iter.toArray(assets.entries());
+	};
+
+	system func postupgrade() {
+		assets := HashMap.fromIter<Asset_ID, Asset>(
+			assets_stable_storage.vals(),
+			0,
+			Text.equal,
+			Text.hash,
+		);
+		assets_stable_storage := [];
 	};
 };
