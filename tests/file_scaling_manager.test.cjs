@@ -3,6 +3,7 @@ const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime");
+const { updateChecksum } = require("./utils.cjs");
 
 // Actor Interface
 const {
@@ -27,6 +28,7 @@ let file_storage_actors = {};
 
 let chunk_ids = [];
 let batch_id = "";
+let checksum = 0;
 
 test("Setup Actors", async function (t) {
   console.log("=========== File Scaling Manager ===========");
@@ -108,6 +110,8 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
   ) {
     const chunk = asset_unit8Array.slice(start, start + chunkSize);
 
+    checksum = updateChecksum(chunk, checksum);
+
     promises.push(
       uploadChunk({
         chunk,
@@ -134,6 +138,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
     chunk_ids,
     {
       filename: asset_filename,
+      checksum: checksum,
       content_encoding: { Identity: null },
       content_type: asset_content_type,
     }

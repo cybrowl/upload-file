@@ -3,7 +3,7 @@ const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime");
-var CRC32 = require("crc-32");
+const { updateChecksum } = require("./utils.cjs");
 
 // Actor Interface
 const {
@@ -71,11 +71,7 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
   ) {
     const chunk = asset_unit8Array.slice(start, start + chunkSize);
 
-    const moduloValue = 400000000; // Range: 0 to 400000000
-    const signedChecksum = CRC32.buf(Buffer.from(chunk, "binary"), 0);
-    let unsignedChecksum = signedChecksum >>> 0;
-
-    checksum = (checksum + unsignedChecksum) % moduloValue;
+    checksum = updateChecksum(chunk, checksum);
 
     promises.push(
       uploadChunk({
@@ -118,7 +114,26 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   const asset_filename = path.basename(file_path);
   const asset_content_type = mime.getType(file_path);
 
-  console.log("checksum: ", checksum);
+  const { ok: asset_id, err: error } =
+    await file_storage_actors.motoko.commit_batch(batch_id, chunk_ids, {
+      filename: asset_filename,
+      checksum: checksum,
+      content_encoding: { Identity: null },
+      content_type: asset_content_type,
+    });
+
+  const { ok: asset } = await file_storage_actors.motoko.get(asset_id);
+
+  t.equal(asset.filename, "bots.mp4");
+  t.equal(asset.content_type, "video/mp4");
+  t.equal(asset.content_size, 14272571n);
+});
+
+test("FileStorage[motoko].commit_batch(): should err => Invalid Checksum", async function (t) {
+  const file_path = "tests/data/bots.mp4";
+
+  const asset_filename = path.basename(file_path);
+  const asset_content_type = mime.getType(file_path);
 
   const { ok: asset_id, err: error } =
     await file_storage_actors.motoko.commit_batch(batch_id, chunk_ids, {
@@ -130,11 +145,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 
   checksum = 0;
 
-  const { ok: asset } = await file_storage_actors.motoko.get(asset_id);
-
-  t.equal(asset.filename, "bots.mp4");
-  t.equal(asset.content_type, "video/mp4");
-  t.equal(asset.content_size, 14272571n);
+  t.equal(error, "Invalid Checksum: Chunk Missing");
 });
 
 test("FileStorage[motoko].create_chunk(): should store chunk data of image file to canister", async function (t) {
@@ -159,11 +170,7 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of image file 
   ) {
     const chunk = asset_unit8Array.slice(start, start + chunkSize);
 
-    const moduloValue = 400000000; // Range: 0 to 400000000
-    const signedChecksum = CRC32.buf(Buffer.from(chunk, "binary"), 0);
-    let unsignedChecksum = signedChecksum >>> 0;
-
-    checksum = (checksum + unsignedChecksum) % moduloValue;
+    checksum = updateChecksum(chunk, checksum);
 
     promises.push(
       uploadChunk({
@@ -223,11 +230,7 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
   const asset_content_type = mime.getType(file_path);
   const batch_id = Math.random().toString(36).substring(2, 7);
 
-  const moduloValue = 400000000; // Range: 0 to 400000000
-  const signedChecksum = CRC32.buf(Buffer.from(asset_unit8Array, "binary"), 0);
-  let unsignedChecksum = signedChecksum >>> 0;
-
-  checksum = (checksum + unsignedChecksum) % moduloValue;
+  checksum = updateChecksum(asset_buffer, checksum);
 
   const chunk_id = await file_storage_actors.motoko.create_chunk(
     batch_id,

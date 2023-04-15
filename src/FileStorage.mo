@@ -137,7 +137,7 @@ actor class FileStorage() = this {
 				canister_id = CANISTER_ID;
 				is_prod = IS_PROD;
 			});
-			owner = debug_show (caller);
+			owner = Principal.toText(caller);
 		};
 
 		assets.put(ASSET_ID, asset);
