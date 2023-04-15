@@ -3,6 +3,7 @@ import Debug "mo:base/Debug";
 import Hash "mo:base/Hash";
 import Int "mo:base/Int";
 import Iter "mo:base/Iter";
+import Map "mo:hashmap/Map";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
@@ -15,6 +16,8 @@ module {
         canister_id : Text;
         is_prod : Bool;
     };
+
+    let { hashNat } = Map;
 
     public func get_asset_id(url : Text) : Text {
         let urlSplitByPath : [Text] = Iter.toArray(Text.tokens(url, #char '/'));
@@ -43,14 +46,18 @@ module {
     public func random_from_time() : [Nat] {
         var randomness = Buffer<Nat>(0);
 
-        let seed = Nat32.toNat(Hash.hash(Int.abs(Time.now())));
+        let hash : Nat32 = hashNat(Int.abs(Time.now()));
+
+        let seed = Nat32.toNat(hash);
 
         for (i in Iter.range(0, 32)) {
             if (i == 0) {
                 randomness.add(seed);
             } else {
                 let prev = randomness.get(i - 1);
-                let next = Nat32.toNat(Hash.hash(prev));
+                let hash_prev : Nat32 = hashNat(prev);
+
+                let next = Nat32.toNat(hash_prev);
                 randomness.add(next);
             };
         };

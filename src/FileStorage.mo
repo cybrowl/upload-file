@@ -5,6 +5,7 @@ import Float "mo:base/Float";
 import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
+import Map "mo:hashmap/Map";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
@@ -37,19 +38,14 @@ actor class FileStorage() = this {
 	// change me when in production
 	let IS_PROD : Bool = false;
 
-	private var assets : HashMap.HashMap<Asset_ID, Asset> = HashMap.HashMap<Asset_ID, Asset>(
-		0,
-		Text.equal,
-		Text.hash,
-	);
+	let { nhash; thash } = Map;
+
+	private var assets = Map.new<Asset_ID, Asset>(thash);
+	private var chunks = Map.new<Chunk_ID, AssetChunk>(nhash);
+
 	stable var assets_stable_storage : [(Asset_ID, Asset)] = [];
 
 	private var chunk_id_count : Chunk_ID = 0;
-	private var chunks : HashMap.HashMap<Chunk_ID, AssetChunk> = HashMap.HashMap<Chunk_ID, AssetChunk>(
-		0,
-		Nat.equal,
-		Hash.hash,
-	);
 
 	private func compare(a : AssetChunk, b : AssetChunk) : Order.Order {
 		if (a.order < b.order) {
@@ -79,7 +75,7 @@ actor class FileStorage() = this {
 			owner = caller;
 		};
 
-		chunks.put(chunk_id_count, asset_chunk);
+		ignore Map.put(chunks, nhash, chunk_id_count, asset_chunk);
 
 		return chunk_id_count;
 	};
@@ -94,7 +90,7 @@ actor class FileStorage() = this {
 		var asset_checksum : Nat32 = 0;
 		let modulo_value : Nat32 = 400_000_000;
 
-		for (chunk in chunks.vals()) {
+		for (chunk in Map.vals(chunks)) {
 			if (chunk.batch_id == batch_id) {
 				if (chunk.owner != caller) {
 					return #err("Not Owner of Chunk");
@@ -119,7 +115,7 @@ actor class FileStorage() = this {
 		};
 
 		for (chunk in chunks_to_commit.vals()) {
-			chunks.delete(chunk.id);
+			Map.delete(chunks, nhash, chunk.id);
 		};
 
 		let asset : Types.Asset = {
@@ -140,16 +136,17 @@ actor class FileStorage() = this {
 			owner = Principal.toText(caller);
 		};
 
-		assets.put(ASSET_ID, asset);
+		ignore Map.put(assets, thash, ASSET_ID, asset);
 
 		return #ok(asset.id);
 	};
 
 	public shared ({ caller }) func delete_asset(id : Asset_ID) : async Result.Result<Text, Text> {
-		switch (assets.get(id)) {
+		switch (Map.get(assets, thash, id)) {
 			case (?asset) {
 				if (asset.owner == Principal.toText(caller)) {
-					assets.delete(id);
+					Map.delete(assets, thash, id);
+
 					return #ok("Asset deleted successfully.");
 				} else {
 					return #err("Permission denied: You are not the owner of this asset.");
@@ -165,10 +162,9 @@ actor class FileStorage() = this {
 		let currentTime = Time.now();
 		let fiveMinutes = 5 * 60 * 1000000000; // Convert 5 minutes to nanoseconds
 
-		let filteredChunks = HashMap.mapFilter<Chunk_ID, AssetChunk, AssetChunk>(
+		let filteredChunks = Map.mapFilter<Chunk_ID, AssetChunk, AssetChunk>(
 			chunks,
-			Nat.equal,
-			Hash.hash,
+			nhash,
 			func(key : Chunk_ID, assetChunk : AssetChunk) : ?AssetChunk {
 				let age = currentTime - assetChunk.created;
 				if (age <= fiveMinutes) {
@@ -185,7 +181,7 @@ actor class FileStorage() = this {
 	public query func assets_list() : async Result.Result<[Asset], Text> {
 		var assets_list = Buffer.Buffer<Asset>(0);
 
-		for (asset in assets.vals()) {
+		for (asset in Map.vals(assets)) {
 			let asset_without_content : Asset = {
 				asset with content = null;
 			};
@@ -197,7 +193,7 @@ actor class FileStorage() = this {
 	};
 
 	public query func get(id : Asset_ID) : async Result.Result<Asset, Text> {
-		switch (assets.get(id)) {
+		switch (Map.get(assets, thash, id)) {
 			case (?asset) {
 				let asset_without_content : Asset = {
 					asset with content = null;
@@ -212,7 +208,7 @@ actor class FileStorage() = this {
 	};
 
 	public query func chunks_size() : async Nat {
-		return chunks.size();
+		return Map.size(chunks);
 	};
 
 	public query func is_full() : async Bool {
@@ -235,7 +231,7 @@ actor class FileStorage() = this {
 
 		let asset_id = Utils.get_asset_id(request.url);
 
-		switch (assets.get(asset_id)) {
+		switch (Map.get(assets, thash, asset_id)) {
 			case (?asset) {
 				let filename = Text.concat("attachment; filename=", asset.filename);
 
@@ -301,7 +297,7 @@ actor class FileStorage() = this {
 	public shared query ({ caller }) func http_request_streaming_callback(
 		st : Types.StreamingCallbackToken
 	) : async Types.StreamingCallbackHttpResponse {
-		switch (assets.get(st.asset_id)) {
+		switch (Map.get(assets, thash, st.asset_id)) {
 			case (null) throw Error.reject("asset_id not found: " # st.asset_id);
 			case (?asset) {
 				return {
@@ -341,16 +337,12 @@ actor class FileStorage() = this {
 
 	// ------------------------- System Methods -------------------------
 	system func preupgrade() {
-		assets_stable_storage := Iter.toArray(assets.entries());
+		assets_stable_storage := Iter.toArray(Map.entries(assets));
 	};
 
 	system func postupgrade() {
-		assets := HashMap.fromIter<Asset_ID, Asset>(
-			assets_stable_storage.vals(),
-			0,
-			Text.equal,
-			Text.hash,
-		);
+		assets := Map.fromIter<Asset_ID, Asset>(assets_stable_storage.vals(), thash);
+
 		assets_stable_storage := [];
 	};
 };
