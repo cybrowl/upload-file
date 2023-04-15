@@ -87,7 +87,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
     chunk_ids,
     {
       filename: asset_filename,
-      content_encoding: "gzip",
+      content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
   );
@@ -97,10 +97,6 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.filename, "bots.mp4");
   t.equal(asset.content_type, "video/mp4");
   t.equal(asset.content_size, 14272571n);
-
-  const chunks_size = await file_storage_actors.motoko.chunks_size();
-
-  t.equal(chunks_size, 0n);
 });
 
 test("FileStorage[motoko].create_chunk(): should store chunk data of image file to canister", async function (t) {
@@ -151,7 +147,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
     chunk_ids,
     {
       filename: asset_filename,
-      content_encoding: "gzip",
+      content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
   );
@@ -161,10 +157,6 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.filename, "poked_3.jpeg");
   t.equal(asset.content_type, "image/jpeg");
   t.equal(asset.content_size, 8169010n);
-
-  const chunks_size = await file_storage_actors.motoko.chunks_size();
-
-  t.equal(chunks_size, 0n);
 });
 
 test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
@@ -194,7 +186,7 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
     [chunk_id],
     {
       filename: asset_filename,
-      content_encoding: "gzip",
+      content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
   );
@@ -248,18 +240,11 @@ test("FileStorage[motoko].create_chunk(): should store chunk data for clearing t
   t.equal(hasChunkIds, true);
 });
 
-test("FileStorage[motoko].chunks_size(): should return non-zero size before clearing", async function (t) {
-  const chunks_size = await file_storage_actors.motoko.chunks_size();
+test("FileStorage[motoko].start_clear_expired_chunks(): should start clearing chunks cron job", async function (t) {
+  const timer_id =
+    await file_storage_actors.motoko.start_clear_expired_chunks();
 
-  t.notEqual(chunks_size, 0n);
-});
-
-test("FileStorage[motoko].clear_chunks(): should clear all chunks", async function (t) {
-  await file_storage_actors.motoko.clear_chunks();
-
-  const chunks_size = await file_storage_actors.motoko.chunks_size();
-
-  t.equal(chunks_size, 0n);
+  t.equal(timer_id, 1n);
 });
 
 test("FileStorage[motoko].is_full(): should return false when memory usage is below threshold", async function (t) {

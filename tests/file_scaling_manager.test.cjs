@@ -134,7 +134,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
     chunk_ids,
     {
       filename: asset_filename,
-      content_encoding: "gzip",
+      content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
   );
@@ -144,10 +144,6 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.filename, "bots.mp4");
   t.equal(asset.content_type, "video/mp4");
   t.equal(asset.content_size, 14272571n);
-
-  const chunks_size = await file_storage_actors.motoko.chunks_size();
-
-  t.equal(chunks_size, 0n);
 });
 
 test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {

@@ -45,7 +45,7 @@ The `FileStorage` actor provides the following public methods:
 - `commit_batch(batch_id: Chunk_ID, chunk_ids: [Chunk_ID], metadata: Metadata)`: Commit all batch operations to the asset canister, creating a complete file from the chunks.
 - `delete_chunk(chunk_id: Chunk_ID)`: Delete a specific chunk from the storage.
 - `delete_asset(asset_id: Asset_ID)`: Delete a specific asset from the storage.
-- `clear_chunks()`: Clear all chunks from the storage.
+- `clear_expired_chunks()`: Clear all expired chunks from the storage.
 - `assets_list()`: Retrieve a list of all files in the asset canister.
 - `get(asset_id: Asset_ID)`: Retrieve a specific file from the asset canister.
 - `chunks_size()`: Retrieve the total size of all chunks in the file storage canister.

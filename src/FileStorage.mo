@@ -13,6 +13,7 @@ import Principal "mo:base/Principal";
 import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 
 import Types "./types";
 
@@ -28,6 +29,7 @@ actor class FileStorage() = this {
 
 	let ACTOR_NAME : Text = "FileStorage";
 	let VERSION : Nat = 1;
+	stable var timer_id : Nat = 0;
 
 	// change me when in production
 	let IS_PROD : Bool = false;
@@ -109,6 +111,7 @@ actor class FileStorage() = this {
 			canister_id = CANISTER_ID;
 			chunks_size = asset_content.size();
 			content = Option.make(Buffer.toArray(asset_content));
+			content_encoding = asset_properties.content_encoding;
 			content_size = content_size;
 			content_type = asset_properties.content_type;
 			created = Time.now();
@@ -143,12 +146,25 @@ actor class FileStorage() = this {
 		};
 	};
 
-	public shared ({ caller }) func clear_chunks() : async () {
-		chunks := HashMap.HashMap<Chunk_ID, AssetChunk>(
-			0,
+	func clear_expired_chunks() : async () {
+		let currentTime = Time.now();
+		let fiveMinutes = 5 * 60 * 1000000000; // Convert 5 minutes to nanoseconds
+
+		let filteredChunks = HashMap.mapFilter<Chunk_ID, AssetChunk, AssetChunk>(
+			chunks,
 			Nat.equal,
 			Hash.hash,
+			func(key : Chunk_ID, assetChunk : AssetChunk) : ?AssetChunk {
+				let age = currentTime - assetChunk.created;
+				if (age <= fiveMinutes) {
+					return ?assetChunk;
+				} else {
+					return null;
+				};
+			},
 		);
+
+		chunks := filteredChunks;
 	};
 
 	public query func assets_list() : async Result.Result<[Asset], Text> {
@@ -185,7 +201,7 @@ actor class FileStorage() = this {
 	};
 
 	public query func is_full() : async Bool {
-		let MAX_SIZE_THRESHOLD_MB : Float = 2000;
+		let MAX_SIZE_THRESHOLD_MB : Float = 1500;
 
 		let rts_memory_size : Nat = Prim.rts_memory_size();
 		let mem_size : Float = Float.fromInt(rts_memory_size);
@@ -290,7 +306,25 @@ actor class FileStorage() = this {
 		return VERSION;
 	};
 
-	// ------------------------- SYSTEM METHODS -------------------------
+	public func start_clear_expired_chunks() : async Timer.TimerId {
+		if (timer_id == 0) {
+			timer_id := 1;
+
+			return Timer.recurringTimer(#seconds(300), clear_expired_chunks);
+		} else {
+			return timer_id;
+		};
+	};
+
+	public func stop_clear_expired_chunks() : async Timer.TimerId {
+		timer_id := 0;
+
+		Timer.cancelTimer(1);
+
+		return 0;
+	};
+
+	// ------------------------- System Methods -------------------------
 	system func preupgrade() {
 		assets_stable_storage := Iter.toArray(assets.entries());
 	};

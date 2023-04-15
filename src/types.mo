@@ -15,17 +15,23 @@ module {
 		owner : Principal;
 	};
 
+	type ContentEncoding = {
+		#Identity;
+		#GZIP;
+	};
+
 	public type AssetProperties = {
-		// sha256 : Text;
-		content_encoding : Text;
+		content_encoding : ContentEncoding;
 		content_type : Text;
 		filename : Text;
+		// sha256 : Text;
 	};
 
 	public type Asset = {
 		canister_id : Text;
 		chunks_size : Nat;
 		content : ?[Blob];
+		content_encoding : ContentEncoding;
 		content_size : Nat;
 		content_type : Text;
 		created : Int;
@@ -38,10 +44,10 @@ module {
 	type HeaderField = (Text, Text);
 
 	public type HttpRequest = {
-		url : Text;
-		method : Text;
 		body : Blob;
 		headers : [HeaderField];
+		method : Text;
+		url : Text;
 	};
 
 	public type HttpResponse = {
