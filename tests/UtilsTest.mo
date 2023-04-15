@@ -23,9 +23,10 @@ let success = run([
             it(
                 "should get asset id from local env",
                 do {
-                    let url = "http://127.0.0.1:8080/asset/10?canisterId=qoctq-giaaa-aaaaa-aaaea-cai";
-                    let expected = "";
+                    let url = "http://127.0.0.1:8080/asset/b727ade3-32b-ca4-a3f-0555128ec8ce?canisterId=qoctq-giaaa-aaaaa-aaaea-cai";
+                    let expected = "b727ade3-32b-ca4-a3f-0555128ec8ce";
                     let asset_id = Utils.get_asset_id(url);
+
                     assertTrue(Text.equal(asset_id, expected));
                 },
             ),
@@ -38,10 +39,9 @@ let success = run([
                 "should generate uuid",
                 do {
                     let uuid = Utils.generate_uuid();
+                    let expected = "4e34f891-9b9-945-ba7-57dcea2a60e4";
 
-                    let has_val = Nat.equal(uuid.size(), 32);
-
-                    assertTrue(has_val);
+                    assertTrue(Text.equal(uuid, expected));
                 },
             ),
         ],

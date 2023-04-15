@@ -216,6 +216,8 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
   const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
 
+  console.log("asset_list: ", asset_list);
+
   const hasAssets = asset_list.length > 1;
 
   t.equal(hasAssets, true);
