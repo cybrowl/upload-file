@@ -6,6 +6,7 @@ import Hash "mo:base/Hash";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
+import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
 import Prim "mo:prim";
@@ -14,6 +15,8 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
+
+import { ofBlob } "./CRC32";
 
 import Types "./types";
 
@@ -63,8 +66,11 @@ actor class FileStorage() = this {
 	public shared ({ caller }) func create_chunk(batch_id : Text, content : Blob, order : Nat) : async Nat {
 		chunk_id_count := chunk_id_count + 1;
 
+		let checksum = ofBlob(content);
+
 		let asset_chunk : AssetChunk = {
 			batch_id = batch_id;
+			checksum = checksum;
 			content = content;
 			created = Time.now();
 			filename = "";
@@ -85,6 +91,8 @@ actor class FileStorage() = this {
 		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
+		var asset_checksum : Nat32 = 0;
+		let modulo_value : Nat32 = 400_000_000;
 
 		for (chunk in chunks.vals()) {
 			if (chunk.batch_id == batch_id) {
@@ -100,10 +108,15 @@ actor class FileStorage() = this {
 
 		for (chunk in chunks_to_commit.vals()) {
 			asset_content.add(chunk.content);
+
+			asset_checksum := (asset_checksum + chunk.checksum) % modulo_value;
+
 			content_size := content_size + chunk.content.size();
 		};
 
-		// TODO: check validity of file prob using sha256
+		if (Nat32.notEqual(asset_checksum, asset_properties.checksum)) {
+			return #err("Invalid Checksum: Chunk Missing");
+		};
 
 		for (chunk in chunks_to_commit.vals()) {
 			chunks.delete(chunk.id);

@@ -1,5 +1,6 @@
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
+import Nat "mo:base/Nat";
 
 module {
 	public type Asset_ID = Text;
@@ -7,6 +8,7 @@ module {
 
 	public type AssetChunk = {
 		batch_id : Text;
+		checksum : Nat32;
 		content : Blob;
 		created : Int;
 		filename : Text;
@@ -24,7 +26,7 @@ module {
 		content_encoding : ContentEncoding;
 		content_type : Text;
 		filename : Text;
-		// sha256 : Text;
+		checksum : Nat32;
 	};
 
 	public type Asset = {

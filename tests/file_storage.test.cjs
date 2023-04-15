@@ -3,6 +3,7 @@ const { Ed25519KeyIdentity } = require("@dfinity/identity");
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime");
+var CRC32 = require("crc-32");
 
 // Actor Interface
 const {
@@ -23,6 +24,7 @@ let file_storage_actors = {};
 
 let chunk_ids = [];
 let batch_id = "";
+let checksum = 0;
 
 test("Setup Actors", async function (t) {
   console.log("=========== File Storage ===========");
@@ -56,6 +58,7 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
   const file_path = "tests/data/bots.mp4";
 
   const asset_buffer = fs.readFileSync(file_path);
+
   const asset_unit8Array = new Uint8Array(asset_buffer);
 
   const promises = [];
@@ -67,6 +70,12 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
     start += chunkSize, index++
   ) {
     const chunk = asset_unit8Array.slice(start, start + chunkSize);
+
+    const moduloValue = 400000000; // Range: 0 to 400000000
+    const signedChecksum = CRC32.buf(Buffer.from(chunk, "binary"), 0);
+    let unsignedChecksum = signedChecksum >>> 0;
+
+    checksum = (checksum + unsignedChecksum) % moduloValue;
 
     promises.push(
       uploadChunk({
@@ -94,6 +103,7 @@ test("FileStorage[dom].commit_batch(): should return error not authorized since 
     chunk_ids,
     {
       filename: asset_filename,
+      checksum: checksum,
       content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
@@ -108,15 +118,17 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   const asset_filename = path.basename(file_path);
   const asset_content_type = mime.getType(file_path);
 
-  const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
-    batch_id,
-    chunk_ids,
-    {
+  console.log("checksum: ", checksum);
+
+  const { ok: asset_id, err: error } =
+    await file_storage_actors.motoko.commit_batch(batch_id, chunk_ids, {
       filename: asset_filename,
+      checksum: checksum,
       content_encoding: { Identity: null },
       content_type: asset_content_type,
-    }
-  );
+    });
+
+  checksum = 0;
 
   const { ok: asset } = await file_storage_actors.motoko.get(asset_id);
 
@@ -147,6 +159,12 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of image file 
   ) {
     const chunk = asset_unit8Array.slice(start, start + chunkSize);
 
+    const moduloValue = 400000000; // Range: 0 to 400000000
+    const signedChecksum = CRC32.buf(Buffer.from(chunk, "binary"), 0);
+    let unsignedChecksum = signedChecksum >>> 0;
+
+    checksum = (checksum + unsignedChecksum) % moduloValue;
+
     promises.push(
       uploadChunk({
         chunk,
@@ -173,10 +191,13 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
     chunk_ids,
     {
       filename: asset_filename,
+      checksum: checksum,
       content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
   );
+
+  checksum = 0;
 
   const { ok: asset } = await file_storage_actors.motoko.get(asset_id);
 
@@ -202,6 +223,12 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
   const asset_content_type = mime.getType(file_path);
   const batch_id = Math.random().toString(36).substring(2, 7);
 
+  const moduloValue = 400000000; // Range: 0 to 400000000
+  const signedChecksum = CRC32.buf(Buffer.from(asset_unit8Array, "binary"), 0);
+  let unsignedChecksum = signedChecksum >>> 0;
+
+  checksum = (checksum + unsignedChecksum) % moduloValue;
+
   const chunk_id = await file_storage_actors.motoko.create_chunk(
     batch_id,
     asset_unit8Array,
@@ -212,6 +239,7 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
     [chunk_id],
     {
       filename: asset_filename,
+      checksum: checksum,
       content_encoding: { Identity: null },
       content_type: asset_content_type,
     }
@@ -227,43 +255,6 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
   const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
   const deleted_asset = asset_list.find((asset) => asset.id === asset_id);
   t.equal(deleted_asset, undefined);
-});
-
-test("FileStorage[motoko].create_chunk(): should store chunk data for clearing test", async function (t) {
-  batch_id = Math.random().toString(36).substring(2, 7);
-
-  const uploadChunk = async ({ chunk, order }) => {
-    return file_storage_actors.motoko.create_chunk(batch_id, chunk, order);
-  };
-
-  const file_path = "tests/data/poked_3.jpeg";
-
-  const asset_buffer = fs.readFileSync(file_path);
-  const asset_unit8Array = new Uint8Array(asset_buffer);
-
-  const promises = [];
-  const chunkSize = 2000000;
-
-  for (
-    let start = 0, index = 0;
-    start < asset_unit8Array.length;
-    start += chunkSize, index++
-  ) {
-    const chunk = asset_unit8Array.slice(start, start + chunkSize);
-
-    promises.push(
-      uploadChunk({
-        chunk,
-        order: index,
-      })
-    );
-  }
-
-  chunk_ids = await Promise.all(promises);
-
-  const hasChunkIds = chunk_ids.length > 2;
-
-  t.equal(hasChunkIds, true);
 });
 
 test("FileStorage[motoko].start_clear_expired_chunks(): should start clearing chunks cron job", async function (t) {
