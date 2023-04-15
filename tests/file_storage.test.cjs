@@ -15,6 +15,7 @@ const file_storage_canister_id = canister_ids.file_storage.local;
 
 // Identities
 let motoko_identity = Ed25519KeyIdentity.generate();
+let dom_identity = Ed25519KeyIdentity.generate();
 
 const { getActor } = require("./actor.cjs");
 
@@ -30,6 +31,12 @@ test("Setup Actors", async function (t) {
     file_storage_canister_id,
     file_storage_interface,
     motoko_identity
+  );
+
+  file_storage_actors.dom = await getActor(
+    file_storage_canister_id,
+    file_storage_interface,
+    dom_identity
   );
 });
 
@@ -74,6 +81,25 @@ test("FileStorage[motoko].create_chunk(): should store chunk data of video file 
   const hasChunkIds = chunk_ids.length > 2;
 
   t.equal(hasChunkIds, true);
+});
+
+test("FileStorage[dom].commit_batch(): should return error not authorized since not owner of chunks", async function (t) {
+  const file_path = "tests/data/bots.mp4";
+
+  const asset_filename = path.basename(file_path);
+  const asset_content_type = mime.getType(file_path);
+
+  const { err: error } = await file_storage_actors.dom.commit_batch(
+    batch_id,
+    chunk_ids,
+    {
+      filename: asset_filename,
+      content_encoding: { Identity: null },
+      content_type: asset_content_type,
+    }
+  );
+
+  t.equal(error, "Not Owner of Chunk");
 });
 
 test("FileStorage[motoko].commit_batch(): should start formation of asset to be stored", async function (t) {

@@ -86,10 +86,12 @@ actor class FileStorage() = this {
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
 
-		//TODO: check chunks belong to caller
-
 		for (chunk in chunks.vals()) {
 			if (chunk.batch_id == batch_id) {
+				if (chunk.owner != caller) {
+					return #err("Not Owner of Chunk");
+				};
+
 				chunks_to_commit.add(chunk);
 			};
 		};
