@@ -1,8 +1,7 @@
 import Cycles "mo:base/ExperimentalCycles";
-import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
+import Map "mo:hashmap/Map";
 import Principal "mo:base/Principal";
-import Text "mo:base/Text";
 import Time "mo:base/Time";
 
 import FileStorage "FileStorage";
@@ -22,11 +21,9 @@ actor FileScalingManager = {
 		parent_name : Text;
 	};
 
-	private let canister_records : HashMap.HashMap<Text, CanisterInfo> = HashMap.HashMap<Text, CanisterInfo>(
-		0,
-		Text.equal,
-		Text.hash,
-	);
+	let { thash } = Map;
+
+	private let canister_records = Map.new<Text, CanisterInfo>(thash);
 
 	stable var file_storage_canister_id : Text = "";
 
@@ -44,7 +41,7 @@ actor FileScalingManager = {
 			parent_name = ACTOR_NAME;
 		};
 
-		canister_records.put(file_storage_canister_id, canister_child);
+		ignore Map.put(canister_records, thash, file_storage_canister_id, canister_child);
 	};
 
 	public shared ({ caller }) func get_file_storage_canister_id() : async Text {
@@ -63,7 +60,7 @@ actor FileScalingManager = {
 	};
 
 	public query func get_canister_records() : async [CanisterInfo] {
-		return Iter.toArray(canister_records.vals());
+		return Iter.toArray(Map.vals(canister_records));
 	};
 
 	public shared ({ caller }) func init() : async Text {

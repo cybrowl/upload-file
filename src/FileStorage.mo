@@ -2,11 +2,8 @@ import Blob "mo:base/Blob";
 import Buffer "mo:base/Buffer";
 import Error "mo:base/Error";
 import Float "mo:base/Float";
-import Hash "mo:base/Hash";
-import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Map "mo:hashmap/Map";
-import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -22,7 +19,6 @@ import { ofBlob } "./CRC32";
 import Types "./types";
 
 import Utils "./utils";
-import Debug "mo:base/Debug";
 
 actor class FileStorage() = this {
 	type Asset = Types.Asset;
