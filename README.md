@@ -18,9 +18,15 @@ Furthermore, the capability to visualize the file chunking process in various fr
 
 `npm i`
 
+`vessel sources`
+
 `dfx deploy file_scaling_manager`
 
 `dfx deploy file_storage`
+
+## Important
+
+use node 18x
 
 ## Testing
 

@@ -6,7 +6,7 @@ let additions = [
   { 
     name = "base",
     repo = "https://github.com/dfinity/motoko-base",
-    version = "master", 
+    version = "5d225a427fb785aacb3051acab4be69651c19101", 
     dependencies = [] : List Text
   },
   { 
