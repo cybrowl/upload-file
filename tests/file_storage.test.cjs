@@ -8,7 +8,7 @@ const { updateChecksum } = require("./utils.cjs");
 // Actor Interface
 const {
   idlFactory: file_storage_interface,
-} = require("../.dfx/local/canisters/file_storage/file_storage.did.test.cjs");
+} = require("../.dfx/local/canisters/file_storage/service.did.test.cjs");
 
 // Canister Ids
 const canister_ids = require("../.dfx/local/canister_ids.json");
@@ -94,16 +94,12 @@ test("FileStorage[dom].commit_batch(): should return error not authorized since 
   const asset_filename = path.basename(file_path);
   const asset_content_type = mime.getType(file_path);
 
-  const { err: error } = await file_storage_actors.dom.commit_batch(
-    batch_id,
-    chunk_ids,
-    {
-      filename: asset_filename,
-      checksum: checksum,
-      content_encoding: { Identity: null },
-      content_type: asset_content_type,
-    }
-  );
+  const { err: error } = await file_storage_actors.dom.commit_batch(batch_id, {
+    filename: asset_filename,
+    checksum: checksum,
+    content_encoding: { Identity: null },
+    content_type: asset_content_type,
+  });
 
   t.equal(error, "Not Owner of Chunk");
 });
@@ -115,7 +111,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   const asset_content_type = mime.getType(file_path);
 
   const { ok: asset_id, err: error } =
-    await file_storage_actors.motoko.commit_batch(batch_id, chunk_ids, {
+    await file_storage_actors.motoko.commit_batch(batch_id, {
       filename: asset_filename,
       checksum: checksum,
       content_encoding: { Identity: null },
@@ -136,7 +132,7 @@ test("FileStorage[motoko].commit_batch(): should err => Invalid Checksum", async
   const asset_content_type = mime.getType(file_path);
 
   const { ok: asset_id, err: error } =
-    await file_storage_actors.motoko.commit_batch(batch_id, chunk_ids, {
+    await file_storage_actors.motoko.commit_batch(batch_id, {
       filename: asset_filename,
       checksum: checksum,
       content_encoding: { Identity: null },
@@ -195,7 +191,6 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 
   const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
     batch_id,
-    chunk_ids,
     {
       filename: asset_filename,
       checksum: checksum,
@@ -239,7 +234,6 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
   );
   const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
     batch_id,
-    [chunk_id],
     {
       filename: asset_filename,
       checksum: checksum,

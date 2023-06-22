@@ -8,10 +8,10 @@ const { updateChecksum } = require("./utils.cjs");
 // Actor Interface
 const {
   idlFactory: file_scaling_manager_interface,
-} = require("../.dfx/local/canisters/file_scaling_manager/file_scaling_manager.did.test.cjs");
+} = require("../.dfx/local/canisters/file_scaling_manager/service.did.test.cjs");
 const {
   idlFactory: file_storage_interface,
-} = require("../.dfx/local/canisters/file_storage/file_storage.did.test.cjs");
+} = require("../.dfx/local/canisters/file_storage/service.did.test.cjs");
 
 // Canister Ids
 const canister_ids = require("../.dfx/local/canister_ids.json");
@@ -135,7 +135,6 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
 
   const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
     batch_id,
-    chunk_ids,
     {
       filename: asset_filename,
       checksum: checksum,
