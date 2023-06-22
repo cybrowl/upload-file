@@ -76,7 +76,7 @@ actor class FileStorage() = this {
 		return chunk_id_count;
 	};
 
-	public shared ({ caller }) func commit_batch(batch_id : Text, chunk_ids : [Chunk_ID], asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
+	public shared ({ caller }) func commit_batch(batch_id : Text, asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
@@ -268,7 +268,7 @@ actor class FileStorage() = this {
 					http_request_streaming_callback : shared () -> async ();
 				};
 
-				return ?#Callback({
+				return ? #Callback({
 					token;
 					callback = canister.http_request_streaming_callback;
 				});
