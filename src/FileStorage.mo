@@ -20,7 +20,7 @@ import Types "./types";
 
 import Utils "./utils";
 
-actor class FileStorage() = this {
+actor class FileStorage(is_prod : Bool) = this {
 	type Asset = Types.Asset;
 	type Asset_ID = Types.Asset_ID;
 	type AssetChunk = Types.AssetChunk;
@@ -30,9 +30,6 @@ actor class FileStorage() = this {
 	let ACTOR_NAME : Text = "FileStorage";
 	let VERSION : Nat = 1;
 	stable var timer_id : Nat = 0;
-
-	// change me when in production
-	let IS_PROD : Bool = false;
 
 	let { nhash; thash } = Map;
 
@@ -127,7 +124,7 @@ actor class FileStorage() = this {
 			url = Utils.generate_asset_url({
 				asset_id = ASSET_ID;
 				canister_id = CANISTER_ID;
-				is_prod = IS_PROD;
+				is_prod = is_prod;
 			});
 			owner = Principal.toText(caller);
 		};

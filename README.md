@@ -20,9 +20,9 @@ Furthermore, the capability to visualize the file chunking process in various fr
 
 `vessel sources`
 
-`dfx deploy file_scaling_manager`
+`dfx deploy file_scaling_manager --argument='(false)'`
 
-`dfx deploy file_storage`
+`dfx deploy file_storage --argument='(false)'`
 
 ## Important
 
