@@ -12,7 +12,7 @@ import Utils "./utils";
 actor class FileScalingManager(is_prod : Bool) = {
 	let ACTOR_NAME : Text = "FileScalingManager";
 	let CYCLE_AMOUNT : Nat = 1_000_000_000_000;
-	let VERSION : Nat = 2;
+	let VERSION : Nat = 3;
 
 	type CanisterInfo = Types.CanisterInfo;
 	type FileStorageActor = Types.FileStorageActor;
@@ -68,10 +68,15 @@ actor class FileScalingManager(is_prod : Bool) = {
 				case (health) {
 					let canister_record_updated : CanisterInfo = {
 						canister with
-						health = ?health;
+						health = ?{
+							cycles = health.cycles;
+							memory_mb = health.memory_mb;
+							heap_mb = health.heap_mb;
+							assets_size = health.assets_size;
+						};
 					};
 
-					Map.set(canister_records, thash, canister_id, canister_record_updated);
+					ignore Map.put(canister_records, thash, canister_id, canister_record_updated);
 				};
 			};
 		};
@@ -85,6 +90,17 @@ actor class FileScalingManager(is_prod : Bool) = {
 
 	public query func get_canister_records() : async [CanisterInfo] {
 		return Iter.toArray(Map.vals(canister_records));
+	};
+
+	public query func get_current_canister() : async ?CanisterInfo {
+		switch (Map.get(canister_records, thash, file_storage_canister_id)) {
+			case (?canister) {
+				return ?canister;
+			};
+			case _ {
+				return null;
+			};
+		};
 	};
 
 	public shared ({ caller }) func init() : async Text {
