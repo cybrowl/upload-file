@@ -3,6 +3,7 @@ import Iter "mo:base/Iter";
 import Map "mo:hashmap/Map";
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 
 import FileStorage "FileStorage";
 import Types "./types";
@@ -23,7 +24,8 @@ actor class FileScalingManager(is_prod : Bool) = {
 
 	let { thash } = Map;
 
-	private let canister_records = Map.new<Text, CanisterInfo>(thash);
+	private var canister_records = Map.new<Text, CanisterInfo>(thash);
+	stable var canister_records_stable_storage : [(Text, CanisterInfo)] = [];
 
 	stable var file_storage_canister_id : Text = "";
 
@@ -44,19 +46,23 @@ actor class FileScalingManager(is_prod : Bool) = {
 		ignore Map.put(canister_records, thash, file_storage_canister_id, canister_child);
 	};
 
-	public shared ({ caller }) func get_file_storage_canister_id() : async Text {
+	private func check_canister_is_full() : async () {
 		let file_storage_actor = actor (file_storage_canister_id) : FileStorageActor;
 
 		switch (await file_storage_actor.is_full()) {
 			case true {
 				await create_file_storage_canister();
 
-				return file_storage_canister_id;
+				return ();
 			};
 			case false {
-				return file_storage_canister_id;
+				return ();
 			};
 		};
+	};
+
+	public query func get_file_storage_canister_id() : async Text {
+		return file_storage_canister_id;
 	};
 
 	public query func get_canister_records() : async [CanisterInfo] {
@@ -76,5 +82,18 @@ actor class FileScalingManager(is_prod : Bool) = {
 	// ------------------------- Canister Management -------------------------
 	public query func version() : async Nat {
 		return VERSION;
+	};
+
+	// ------------------------- System Methods -------------------------
+	system func preupgrade() {
+		canister_records_stable_storage := Iter.toArray(Map.entries(canister_records));
+	};
+
+	system func postupgrade() {
+		canister_records := Map.fromIter<Text, CanisterInfo>(canister_records_stable_storage.vals(), thash);
+
+		ignore Timer.recurringTimer(#seconds(600), check_canister_is_full);
+
+		canister_records_stable_storage := [];
 	};
 };

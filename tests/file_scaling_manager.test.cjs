@@ -162,8 +162,6 @@ test("FileScalingManager[motoko].get_canister_records(): should return all canis
   const records =
     await file_scaling_manager_actors.motoko.get_canister_records();
 
-  console.log("records: ", records);
-
   const hasAssets = records.length > 0;
 
   t.equal(hasAssets, true);
