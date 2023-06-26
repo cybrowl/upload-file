@@ -29,7 +29,7 @@ actor class FileStorage(is_prod : Bool) = this {
 	type Health = Types.Health;
 
 	let ACTOR_NAME : Text = "FileStorage";
-	let VERSION : Nat = 2;
+	let VERSION : Nat = 3;
 	stable var timer_id : Nat = 0;
 
 	let { nhash; thash } = Map;
@@ -322,24 +322,6 @@ actor class FileStorage(is_prod : Bool) = this {
 		return VERSION;
 	};
 
-	public func start_clear_expired_chunks() : async Timer.TimerId {
-		if (timer_id == 0) {
-			timer_id := 1;
-
-			return Timer.recurringTimer(#seconds(300), clear_expired_chunks);
-		} else {
-			return timer_id;
-		};
-	};
-
-	public func stop_clear_expired_chunks() : async Timer.TimerId {
-		timer_id := 0;
-
-		Timer.cancelTimer(1);
-
-		return 0;
-	};
-
 	// ------------------------- System Methods -------------------------
 	system func preupgrade() {
 		assets_stable_storage := Iter.toArray(Map.entries(assets));
@@ -347,6 +329,8 @@ actor class FileStorage(is_prod : Bool) = this {
 
 	system func postupgrade() {
 		assets := Map.fromIter<Asset_ID, Asset>(assets_stable_storage.vals(), thash);
+
+		ignore Timer.recurringTimer(#seconds(300), clear_expired_chunks);
 
 		assets_stable_storage := [];
 	};
