@@ -4,6 +4,7 @@ import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Iter "mo:base/Iter";
 import Map "mo:hashmap/Map";
+import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
 import Order "mo:base/Order";
@@ -29,7 +30,7 @@ actor class FileStorage(is_prod : Bool) = this {
 	type Health = Types.Health;
 
 	let ACTOR_NAME : Text = "FileStorage";
-	let VERSION : Nat = 3;
+	let VERSION : Nat = 4;
 	stable var timer_id : Nat = 0;
 
 	let { nhash; thash } = Map;
@@ -41,25 +42,12 @@ actor class FileStorage(is_prod : Bool) = this {
 
 	private var chunk_id_count : Chunk_ID = 0;
 
-	private func compare(a : AssetChunk, b : AssetChunk) : Order.Order {
-		if (a.order < b.order) {
-			return #less;
-		};
-
-		if (a.order > b.order) {
-			return #greater;
-		};
-
-		return #equal;
-	};
-
-	public shared ({ caller }) func create_chunk(batch_id : Text, content : Blob, order : Nat) : async Nat {
+	public shared ({ caller }) func create_chunk(content : Blob, order : Nat) : async Nat {
 		chunk_id_count := chunk_id_count + 1;
 
-		let checksum = ofBlob(content);
+		let checksum = Nat32.toNat(ofBlob(content));
 
 		let asset_chunk : AssetChunk = {
-			batch_id = batch_id;
 			checksum = checksum;
 			content = content;
 			created = Time.now();
@@ -74,42 +62,42 @@ actor class FileStorage(is_prod : Bool) = this {
 		return chunk_id_count;
 	};
 
-	public shared ({ caller }) func commit_batch(batch_id : Text, asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
+	public shared ({ caller }) func commit_batch(chunk_ids : [Nat], asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
-		var chunks_to_commit = Buffer.Buffer<AssetChunk>(0);
 		var asset_content = Buffer.Buffer<Blob>(0);
 		var content_size = 0;
-		var asset_checksum : Nat32 = 0;
-		let modulo_value : Nat32 = 400_000_000;
+		var asset_checksum : Nat = 0;
+		let modulo_value : Nat = 400_000_000;
 
-		for (chunk in Map.vals(chunks)) {
-			if (chunk.batch_id == batch_id) {
-				if (chunk.owner != caller) {
-					return #err("Not Owner of Chunk");
+		for (id in chunk_ids.vals()) {
+			switch (Map.get(chunks, nhash, id)) {
+				case (?chunk) {
+					if (chunk.owner != caller) {
+						return #err("Not Owner of Chunk");
+					} else {
+						asset_content.add(chunk.content);
+
+						asset_checksum := (asset_checksum + chunk.checksum) % modulo_value;
+
+						content_size := content_size + chunk.content.size();
+					};
+
 				};
-
-				chunks_to_commit.add(chunk);
+				case (_) {
+					return #err("Chunk Not Found");
+				};
 			};
+
 		};
 
-		chunks_to_commit.sort(compare);
-
-		for (chunk in chunks_to_commit.vals()) {
-			asset_content.add(chunk.content);
-
-			asset_checksum := (asset_checksum + chunk.checksum) % modulo_value;
-
-			content_size := content_size + chunk.content.size();
+		if (Nat.notEqual(asset_checksum, asset_properties.checksum)) {
+			return #err("Invalid Checksum");
 		};
 
-		if (Nat32.notEqual(asset_checksum, asset_properties.checksum)) {
-			return #err("Invalid Checksum: Chunk Missing");
-		};
-
-		for (chunk in chunks_to_commit.vals()) {
-			Map.delete(chunks, nhash, chunk.id);
+		for (id in chunk_ids.vals()) {
+			Map.delete(chunks, nhash, id);
 		};
 
 		let asset : Types.Asset = {

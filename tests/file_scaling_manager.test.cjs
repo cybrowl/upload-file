@@ -43,7 +43,7 @@ test("Setup Actors", async function (t) {
 test("FileScalingManager[motoko].version(): should return version number", async function (t) {
   const response = await file_scaling_manager_actors.motoko.version();
 
-  t.equal(response, 2n);
+  t.equal(response, 3n);
 });
 
 test("FileScalingManager[motoko].init(): should create file_storage_canister", async function (t) {
@@ -83,10 +83,8 @@ test("Setup Actors", async function (t) {
 });
 
 test("FileStorage[motoko].create_chunk(): should store chunk data of video file to canister", async function (t) {
-  batch_id = Math.random().toString(36).substring(2, 7);
-
   const uploadChunk = async ({ chunk, order }) => {
-    return file_storage_actors.motoko.create_chunk(batch_id, chunk, order);
+    return file_storage_actors.motoko.create_chunk(chunk, order);
   };
 
   const file_path = "tests/data/bots.mp4";
@@ -128,7 +126,7 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   const asset_content_type = mime.getType(file_path);
 
   const { ok: asset_id } = await file_storage_actors.motoko.commit_batch(
-    batch_id,
+    chunk_ids,
     {
       filename: asset_filename,
       checksum: checksum,

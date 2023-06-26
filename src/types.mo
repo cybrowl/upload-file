@@ -7,8 +7,7 @@ module {
 	public type Chunk_ID = Nat;
 
 	public type AssetChunk = {
-		batch_id : Text;
-		checksum : Nat32;
+		checksum : Nat;
 		content : Blob;
 		created : Int;
 		filename : Text;
@@ -26,7 +25,7 @@ module {
 		content_encoding : ContentEncoding;
 		content_type : Text;
 		filename : Text;
-		checksum : Nat32;
+		checksum : Nat;
 	};
 
 	public type Asset = {
