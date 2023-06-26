@@ -7,20 +7,16 @@ import Timer "mo:base/Timer";
 
 import FileStorage "FileStorage";
 import Types "./types";
+import Utils "./utils";
 
 actor class FileScalingManager(is_prod : Bool) = {
 	let ACTOR_NAME : Text = "FileScalingManager";
 	let CYCLE_AMOUNT : Nat = 1_000_000_000_000;
-	let VERSION : Nat = 1;
+	let VERSION : Nat = 2;
 
+	type CanisterInfo = Types.CanisterInfo;
 	type FileStorageActor = Types.FileStorageActor;
-
-	type CanisterInfo = {
-		created : Int;
-		id : Text;
-		name : Text;
-		parent_name : Text;
-	};
+	type Health = Types.Health;
 
 	let { thash } = Map;
 
@@ -41,6 +37,7 @@ actor class FileScalingManager(is_prod : Bool) = {
 			id = file_storage_canister_id;
 			name = "file_storage";
 			parent_name = ACTOR_NAME;
+			health = null;
 		};
 
 		ignore Map.put(canister_records, thash, file_storage_canister_id, canister_child);
@@ -59,6 +56,27 @@ actor class FileScalingManager(is_prod : Bool) = {
 				return ();
 			};
 		};
+	};
+
+	private func update_health() : async () {
+		let canister_entries = Map.entries(canister_records);
+
+		for ((canister_id, canister) in canister_entries) {
+			let file_storage_actor = actor (canister_id) : FileStorageActor;
+
+			switch (await file_storage_actor.get_health()) {
+				case (health) {
+					let canister_record_updated : CanisterInfo = {
+						canister with
+						health = ?health;
+					};
+
+					Map.set(canister_records, thash, canister_id, canister_record_updated);
+				};
+			};
+		};
+
+		return ();
 	};
 
 	public query func get_file_storage_canister_id() : async Text {
@@ -93,6 +111,7 @@ actor class FileScalingManager(is_prod : Bool) = {
 		canister_records := Map.fromIter<Text, CanisterInfo>(canister_records_stable_storage.vals(), thash);
 
 		ignore Timer.recurringTimer(#seconds(600), check_canister_is_full);
+		ignore Timer.recurringTimer(#seconds(600), update_health);
 
 		canister_records_stable_storage := [];
 	};

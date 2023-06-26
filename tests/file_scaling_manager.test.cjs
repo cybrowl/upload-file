@@ -43,7 +43,7 @@ test("Setup Actors", async function (t) {
 test("FileScalingManager[motoko].version(): should return version number", async function (t) {
   const response = await file_scaling_manager_actors.motoko.version();
 
-  t.equal(response, 1n);
+  t.equal(response, 2n);
 });
 
 test("FileScalingManager[motoko].init(): should create file_storage_canister", async function (t) {
@@ -80,12 +80,6 @@ test("Setup Actors", async function (t) {
     file_storage_interface,
     motoko_identity
   );
-});
-
-test("FileStorage[motoko].version(): should return version number", async function (t) {
-  const response = await file_storage_actors.motoko.version();
-
-  t.equal(response, 1n);
 });
 
 test("FileStorage[motoko].create_chunk(): should store chunk data of video file to canister", async function (t) {

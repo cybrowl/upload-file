@@ -43,6 +43,21 @@ module {
 		url : Text;
 	};
 
+	public type Health = {
+		cycles : Int;
+		memory_mb : Int;
+		heap_mb : Int;
+		assets_size : Int;
+	};
+
+	public type CanisterInfo = {
+		created : Int;
+		id : Text;
+		name : Text;
+		parent_name : Text;
+		health : ?Health;
+	};
+
 	type HeaderField = (Text, Text);
 
 	public type HttpRequest = {
@@ -85,5 +100,6 @@ module {
 
 	public type FileStorageActor = actor {
 		is_full : shared () -> async Bool;
+		get_health : query () -> async Health;
 	};
 };

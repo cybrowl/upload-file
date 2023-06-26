@@ -26,9 +26,10 @@ actor class FileStorage(is_prod : Bool) = this {
 	type AssetChunk = Types.AssetChunk;
 	type AssetProperties = Types.AssetProperties;
 	type Chunk_ID = Types.Chunk_ID;
+	type Health = Types.Health;
 
 	let ACTOR_NAME : Text = "FileStorage";
-	let VERSION : Nat = 1;
+	let VERSION : Nat = 2;
 	stable var timer_id : Nat = 0;
 
 	let { nhash; thash } = Map;
@@ -198,6 +199,17 @@ actor class FileStorage(is_prod : Bool) = this {
 				return #err("Asset Not Found");
 			};
 		};
+	};
+
+	public query func get_health() : async Health {
+		let health : Health = {
+			cycles = Utils.get_cycles_balance();
+			memory_mb = Utils.get_memory_in_mb();
+			heap_mb = Utils.get_heap_in_mb();
+			assets_size = Map.size(assets);
+		};
+
+		return health;
 	};
 
 	public query func chunks_size() : async Nat {
