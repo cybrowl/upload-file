@@ -16,6 +16,8 @@ module {
 		owner : Principal;
 	};
 
+	public type ChunkInfo = { id : Chunk_ID; order : Nat };
+
 	type ContentEncoding = {
 		#Identity;
 		#GZIP;

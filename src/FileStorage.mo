@@ -1,5 +1,5 @@
 import Blob "mo:base/Blob";
-import Buffer "mo:base/Buffer";
+import { Buffer; toArray } "mo:base/Buffer";
 import Error "mo:base/Error";
 import Float "mo:base/Float";
 import Iter "mo:base/Iter";
@@ -27,6 +27,7 @@ actor class FileStorage(is_prod : Bool) = this {
 	type AssetChunk = Types.AssetChunk;
 	type AssetProperties = Types.AssetProperties;
 	type Chunk_ID = Types.Chunk_ID;
+	type ChunkInfo = Types.ChunkInfo;
 	type ErrCommitBatch = Types.ErrCommitBatch;
 	type ErrDeleteAsset = Types.ErrDeleteAsset;
 	type Health = Types.Health;
@@ -89,13 +90,28 @@ actor class FileStorage(is_prod : Bool) = this {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
-		var asset_content = Buffer.Buffer<Blob>(0);
+		var asset_content = Buffer<Blob>(0);
 		var content_size = 0;
 		var asset_checksum : Nat = 0;
 		let modulo_value : Nat = 400_000_000;
 
+		var chunks_to_commit = Buffer<ChunkInfo>(0);
+
 		for (id in chunk_ids.vals()) {
 			switch (Map.get(chunks, nhash, id)) {
+				case (?chunk) {
+					chunks_to_commit.add({ id = id; order = chunk.order });
+				};
+				case (_) {
+					return #err(#ChunkNotFound(true));
+				};
+			};
+		};
+
+		chunks_to_commit.sort(Utils.compare);
+
+		for (chunk_info in chunks_to_commit.vals()) {
+			switch (Map.get(chunks, nhash, chunk_info.id)) {
 				case (?chunk) {
 					if (chunk.owner != caller) {
 						return #err(#ChunkOwnerInvalid(true));
@@ -124,7 +140,7 @@ actor class FileStorage(is_prod : Bool) = this {
 		let asset : Types.Asset = {
 			canister_id = CANISTER_ID;
 			chunks_size = asset_content.size();
-			content = Option.make(Buffer.toArray(asset_content));
+			content = Option.make(toArray(asset_content));
 			content_encoding = asset_properties.content_encoding;
 			content_size = content_size;
 			content_type = asset_properties.content_type;
@@ -162,7 +178,7 @@ actor class FileStorage(is_prod : Bool) = this {
 	};
 
 	public query func get_all_assets() : async [Asset] {
-		var assets_list = Buffer.Buffer<Asset>(0);
+		var assets_list = Buffer<Asset>(0);
 
 		for (asset in Map.vals(assets)) {
 			let asset_without_content : Asset = {
@@ -172,7 +188,7 @@ actor class FileStorage(is_prod : Bool) = this {
 			assets_list.add(asset_without_content);
 		};
 
-		return Buffer.toArray(assets_list);
+		return toArray(assets_list);
 	};
 
 	public query func get(id : Asset_ID) : async Result.Result<Asset, Text> {

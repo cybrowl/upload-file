@@ -9,11 +9,16 @@ import Map "mo:hashmap/Map";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Option "mo:base/Option";
+import Order "mo:base/Order";
 import Prim "mo:⛔";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
 
+import Types "./types";
+
 module {
+    type ChunkInfo = Types.ChunkInfo;
+
     private type GenerateAssetUrlArgs = {
         asset_id : Text;
         canister_id : Text;
@@ -105,5 +110,15 @@ module {
 
     public func get_cycles_balance() : Int {
         return ExperimentalCycles.balance();
+    };
+
+    public func compare(a : ChunkInfo, b : ChunkInfo) : Order.Order {
+        if (a.order < b.order) {
+            return #less;
+        };
+        if (a.order > b.order) {
+            return #greater;
+        };
+        return #equal;
     };
 };

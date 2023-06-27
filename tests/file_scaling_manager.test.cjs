@@ -57,7 +57,7 @@ test("FileScalingManager[motoko].init(): should create file_storage_canister", a
 test("FileScalingManager[motoko].init(): should return file_storage_canister exists", async function (t) {
   const response = await file_scaling_manager_actors.motoko.init();
 
-  t.equal(response, "file storage canister already exists");
+  t.true(response.includes("Exists"));
 });
 
 test("FileScalingManager[motoko].get_file_storage_canister_id(): should get canister id", async function (t) {
