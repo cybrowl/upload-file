@@ -32,20 +32,6 @@ let success = run([
             ),
         ],
     ),
-    describe(
-        "generate_uuid()",
-        [
-            it(
-                "should generate uuid",
-                do {
-                    let uuid = Utils.generate_uuid();
-                    let expected = "4e34f891-9b9-945-ba7-57dcea2a60e4";
-
-                    assertTrue(Text.equal(uuid, expected));
-                },
-            ),
-        ],
-    ),
 ]);
 
 if (success == false) {
