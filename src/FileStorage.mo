@@ -27,6 +27,8 @@ actor class FileStorage(is_prod : Bool) = this {
 	type AssetChunk = Types.AssetChunk;
 	type AssetProperties = Types.AssetProperties;
 	type Chunk_ID = Types.Chunk_ID;
+	type ErrCommitBatch = Types.ErrCommitBatch;
+	type ErrDeleteAsset = Types.ErrDeleteAsset;
 	type Health = Types.Health;
 
 	let ACTOR_NAME : Text = "FileStorage";
@@ -39,8 +41,29 @@ actor class FileStorage(is_prod : Bool) = this {
 	private var chunks = Map.new<Chunk_ID, AssetChunk>(nhash);
 
 	stable var assets_stable_storage : [(Asset_ID, Asset)] = [];
+	stable var chunks_stable_storage : [(Chunk_ID, AssetChunk)] = [];
 
 	private var chunk_id_count : Chunk_ID = 0;
+
+	private func clear_expired_chunks() : async () {
+		let currentTime = Time.now();
+		let fiveMinutes = 5 * 60 * 1000000000; // Convert 5 minutes to nanoseconds
+
+		let filteredChunks = Map.mapFilter<Chunk_ID, AssetChunk, AssetChunk>(
+			chunks,
+			nhash,
+			func(key : Chunk_ID, assetChunk : AssetChunk) : ?AssetChunk {
+				let age = currentTime - assetChunk.created;
+				if (age <= fiveMinutes) {
+					return ?assetChunk;
+				} else {
+					return null;
+				};
+			},
+		);
+
+		chunks := filteredChunks;
+	};
 
 	public shared ({ caller }) func create_chunk(content : Blob, order : Nat) : async Nat {
 		chunk_id_count := chunk_id_count + 1;
@@ -62,7 +85,7 @@ actor class FileStorage(is_prod : Bool) = this {
 		return chunk_id_count;
 	};
 
-	public shared ({ caller }) func commit_batch(chunk_ids : [Nat], asset_properties : AssetProperties) : async Result.Result<Asset_ID, Text> {
+	public shared ({ caller }) func commit_batch(chunk_ids : [Nat], asset_properties : AssetProperties) : async Result.Result<Asset_ID, ErrCommitBatch> {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
@@ -75,7 +98,7 @@ actor class FileStorage(is_prod : Bool) = this {
 			switch (Map.get(chunks, nhash, id)) {
 				case (?chunk) {
 					if (chunk.owner != caller) {
-						return #err("Not Owner of Chunk");
+						return #err(#ChunkOwnerInvalid(true));
 					} else {
 						asset_content.add(chunk.content);
 
@@ -83,17 +106,15 @@ actor class FileStorage(is_prod : Bool) = this {
 
 						content_size := content_size + chunk.content.size();
 					};
-
 				};
 				case (_) {
-					return #err("Chunk Not Found");
+					return #err(#ChunkNotFound(true));
 				};
 			};
-
 		};
 
 		if (Nat.notEqual(asset_checksum, asset_properties.checksum)) {
-			return #err("Invalid Checksum");
+			return #err(#ChecksumInvalid(true));
 		};
 
 		for (id in chunk_ids.vals()) {
@@ -123,44 +144,24 @@ actor class FileStorage(is_prod : Bool) = this {
 		return #ok(asset.id);
 	};
 
-	public shared ({ caller }) func delete_asset(id : Asset_ID) : async Result.Result<Text, Text> {
+	public shared ({ caller }) func delete_asset(id : Asset_ID) : async Result.Result<Text, ErrDeleteAsset> {
 		switch (Map.get(assets, thash, id)) {
 			case (?asset) {
 				if (asset.owner == Principal.toText(caller)) {
 					Map.delete(assets, thash, id);
 
-					return #ok("Asset deleted successfully.");
+					return #ok("Deleted Asset");
 				} else {
-					return #err("Permission denied: You are not the owner of this asset.");
+					return #err(#NotAuthorized(true));
 				};
 			};
 			case (_) {
-				return #err("Asset not found.");
+				return #err(#AssetNotFound(true));
 			};
 		};
 	};
 
-	func clear_expired_chunks() : async () {
-		let currentTime = Time.now();
-		let fiveMinutes = 5 * 60 * 1000000000; // Convert 5 minutes to nanoseconds
-
-		let filteredChunks = Map.mapFilter<Chunk_ID, AssetChunk, AssetChunk>(
-			chunks,
-			nhash,
-			func(key : Chunk_ID, assetChunk : AssetChunk) : ?AssetChunk {
-				let age = currentTime - assetChunk.created;
-				if (age <= fiveMinutes) {
-					return ?assetChunk;
-				} else {
-					return null;
-				};
-			},
-		);
-
-		chunks := filteredChunks;
-	};
-
-	public query func assets_list() : async Result.Result<[Asset], Text> {
+	public query func get_all_assets() : async [Asset] {
 		var assets_list = Buffer.Buffer<Asset>(0);
 
 		for (asset in Map.vals(assets)) {
@@ -171,7 +172,7 @@ actor class FileStorage(is_prod : Bool) = this {
 			assets_list.add(asset_without_content);
 		};
 
-		return #ok(Buffer.toArray(assets_list));
+		return Buffer.toArray(assets_list);
 	};
 
 	public query func get(id : Asset_ID) : async Result.Result<Asset, Text> {
@@ -313,6 +314,8 @@ actor class FileStorage(is_prod : Bool) = this {
 	// ------------------------- System Methods -------------------------
 	system func preupgrade() {
 		assets_stable_storage := Iter.toArray(Map.entries(assets));
+		chunks_stable_storage := Iter.toArray(Map.entries(chunks));
+
 	};
 
 	system func postupgrade() {

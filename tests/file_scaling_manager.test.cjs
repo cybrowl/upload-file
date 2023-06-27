@@ -142,10 +142,10 @@ test("FileStorage[motoko].commit_batch(): should start formation of asset to be 
   t.equal(asset.content_size, 14272571n);
 });
 
-test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
-  const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
+test("FileStorage[motoko].get_all_assets(): should return all assets without file content data since it would be too large", async function (t) {
+  const assets = await file_storage_actors.motoko.get_all_assets();
 
-  const hasAssets = asset_list.length > 0;
+  const hasAssets = assets.length > 0;
 
   t.equal(hasAssets, true);
 });

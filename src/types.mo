@@ -97,6 +97,17 @@ module {
 		token : ?StreamingCallbackToken;
 	};
 
+	public type ErrCommitBatch = {
+		#ChunkOwnerInvalid : Bool;
+		#ChunkNotFound : Bool;
+		#ChecksumInvalid : Bool;
+	};
+
+	public type ErrDeleteAsset = {
+		#AssetNotFound : Bool;
+		#NotAuthorized : Bool;
+	};
+
 	public type FileStorageActor = actor {
 		is_full : shared () -> async Bool;
 		get_health : query () -> async Health;

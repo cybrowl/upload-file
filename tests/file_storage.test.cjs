@@ -45,7 +45,7 @@ test("Setup Actors", async function (t) {
 test("FileStorage[motoko].version(): should return version number", async function (t) {
   const response = await file_storage_actors.motoko.version();
 
-  t.equal(response, 3n);
+  t.equal(response, 4n);
 });
 
 test("FileStorage[motoko].create_chunk(): with large video file #ok -> chunk_ids", async function (t) {
@@ -86,7 +86,7 @@ test("FileStorage[motoko].create_chunk(): with large video file #ok -> chunk_ids
   t.equal(hasChunkIds, true);
 });
 
-test("FileStorage[dom].commit_batch(): with new identiy #err -> Not Owner of Chunk", async function (t) {
+test("FileStorage[dom].commit_batch(): with new identiy #err -> ChunkOwnerInvalid", async function (t) {
   const file_path = "tests/data/bots.mp4";
 
   const asset_filename = path.basename(file_path);
@@ -99,10 +99,10 @@ test("FileStorage[dom].commit_batch(): with new identiy #err -> Not Owner of Chu
     content_type: asset_content_type,
   });
 
-  t.equal(error, "Not Owner of Chunk");
+  t.deepEqual(error, { ChunkOwnerInvalid: true });
 });
 
-test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> Chunk Not Found", async function (t) {
+test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> ChunkNotFound", async function (t) {
   const file_path = "tests/data/bots.mp4";
 
   const asset_filename = path.basename(file_path);
@@ -116,7 +116,7 @@ test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> Chunk Not F
       content_type: asset_content_type,
     });
 
-  t.equal(error, "Chunk Not Found");
+  t.deepEqual(error, { ChunkNotFound: true });
 });
 
 test("FileStorage[motoko].create_chunk(): with image file for injection #ok -> chunk_ids", async function (t) {
@@ -154,7 +154,7 @@ test("FileStorage[motoko].create_chunk(): with image file for injection #ok -> c
   t.equal(hasChunkIds, true);
 });
 
-test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> Invalid Checksum", async function (t) {
+test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> ChecksumInvalid", async function (t) {
   const file_path = "tests/data/bots.mp4";
 
   const asset_filename = path.basename(file_path);
@@ -172,7 +172,7 @@ test("FileStorage[motoko].commit_batch(): with invalid chunk #err -> Invalid Che
       content_type: asset_content_type,
     });
 
-  t.equal(error, "Invalid Checksum");
+  t.deepEqual(error, { ChecksumInvalid: true });
 });
 
 test("FileStorage[motoko].commit_batch(): with large video file #ok -> asset_id", async function (t) {
@@ -263,15 +263,15 @@ test("FileStorage[motoko].commit_batch(): with image file #ok -> asset_id", asyn
   t.equal(asset.content_size, 8169010n);
 });
 
-test("FileStorage[motoko].assets_list(): should return all assets without file content data since it would be too large", async function (t) {
-  const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
+test("FileStorage[motoko].get_all_assets(): # -> assets", async function (t) {
+  const assets = await file_storage_actors.motoko.get_all_assets();
 
-  const hasAssets = asset_list.length > 1;
+  const hasAssets = assets.length > 1;
 
   t.equal(hasAssets, true);
 });
 
-test("FileStorage[motoko].delete_asset(): should delete an asset", async function (t) {
+test("FileStorage[motoko].delete_asset(): with valid asset #ok -> Deleted Asset", async function (t) {
   // Upload an asset
   const file_path = "tests/data/poked_1.jpeg";
   const asset_buffer = fs.readFileSync(file_path);
@@ -299,10 +299,10 @@ test("FileStorage[motoko].delete_asset(): should delete an asset", async functio
   const { ok: delete_result } = await file_storage_actors.motoko.delete_asset(
     asset_id
   );
-  t.equal(delete_result, "Asset deleted successfully.");
+  t.equal(delete_result, "Deleted Asset");
 
   // Check if the asset is no longer in the assets list
-  const { ok: asset_list } = await file_storage_actors.motoko.assets_list();
+  const asset_list = await file_storage_actors.motoko.get_all_assets();
   const deleted_asset = asset_list.find((asset) => asset.id === asset_id);
   t.equal(deleted_asset, undefined);
 });
