@@ -6,10 +6,12 @@ import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 
 import FileStorage "FileStorage";
+
 import Types "./types";
+import TypesIC "./types_ic";
 import Utils "./utils";
 
-actor class FileScalingManager(is_prod : Bool) = {
+actor class FileScalingManager(is_prod : Bool) = this {
 	let ACTOR_NAME : Text = "FileScalingManager";
 	let CYCLE_AMOUNT : Nat = 1_000_000_000_000;
 	let VERSION : Nat = 3;
@@ -18,12 +20,16 @@ actor class FileScalingManager(is_prod : Bool) = {
 	type FileStorageActor = Types.FileStorageActor;
 	type Health = Types.Health;
 
+	type ManagementActor = TypesIC.Self;
+
 	let { thash } = Map;
 
 	private var canister_records = Map.new<Text, CanisterInfo>(thash);
 	stable var canister_records_stable_storage : [(Text, CanisterInfo)] = [];
 
 	stable var file_storage_canister_id : Text = "";
+
+	private let management_actor : ManagementActor = actor "aaaaa-aa";
 
 	private func create_file_storage_canister() : async () {
 		Cycles.add(CYCLE_AMOUNT);
@@ -107,10 +113,22 @@ actor class FileScalingManager(is_prod : Bool) = {
 		if (file_storage_canister_id == "") {
 			await create_file_storage_canister();
 
-			return "created new file storage canister";
+			let settings = {
+				controllers = ?[caller, Principal.fromActor(this)];
+				freezing_threshold = ?2_592_000;
+				memory_allocation = ?0;
+				compute_allocation = ?0;
+			};
+
+			ignore management_actor.update_settings({
+				canister_id = Principal.fromText(file_storage_canister_id);
+				settings = settings;
+			});
+
+			return "Created: " # file_storage_canister_id;
 		};
 
-		return "file storage canister already exists";
+		return "Exists: " # file_storage_canister_id;
 	};
 
 	// ------------------------- Canister Management -------------------------
