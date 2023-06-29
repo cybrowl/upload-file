@@ -90,13 +90,9 @@ actor class FileStorage(is_prod : Bool) = this {
 		let ASSET_ID = Utils.generate_uuid();
 		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
 
-		var asset_content = Buffer<Blob>(0);
-		var content_size = 0;
-		var asset_checksum : Nat = 0;
-		let modulo_value : Nat = 400_000_000;
-
 		var chunks_to_commit = Buffer<ChunkInfo>(0);
 
+		// Collect chunks
 		for (id in chunk_ids.vals()) {
 			switch (Map.get(chunks, nhash, id)) {
 				case (?chunk) {
@@ -108,8 +104,15 @@ actor class FileStorage(is_prod : Bool) = this {
 			};
 		};
 
+		// Sort chunks by order
 		chunks_to_commit.sort(Utils.compare);
 
+		let modulo_value : Nat = 400_000_000;
+		var asset_content = Buffer<Blob>(0);
+		var asset_checksum : Nat = 0;
+		var content_size = 0;
+
+		// Accumulate content and compute checksum
 		for (chunk_info in chunks_to_commit.vals()) {
 			switch (Map.get(chunks, nhash, chunk_info.id)) {
 				case (?chunk) {
@@ -117,9 +120,7 @@ actor class FileStorage(is_prod : Bool) = this {
 						return #err(#ChunkOwnerInvalid(true));
 					} else {
 						asset_content.add(chunk.content);
-
 						asset_checksum := (asset_checksum + chunk.checksum) % modulo_value;
-
 						content_size := content_size + chunk.content.size();
 					};
 				};
@@ -129,14 +130,17 @@ actor class FileStorage(is_prod : Bool) = this {
 			};
 		};
 
+		// Verify checksum
 		if (Nat.notEqual(asset_checksum, asset_properties.checksum)) {
 			return #err(#ChecksumInvalid(true));
 		};
 
+		// Remove committed chunks
 		for (id in chunk_ids.vals()) {
 			Map.delete(chunks, nhash, id);
 		};
 
+		// Create and insert new asset
 		let asset : Types.Asset = {
 			canister_id = CANISTER_ID;
 			chunks_size = asset_content.size();
@@ -156,7 +160,6 @@ actor class FileStorage(is_prod : Bool) = this {
 		};
 
 		ignore Map.put(assets, thash, ASSET_ID, asset);
-
 		return #ok(asset.id);
 	};
 
