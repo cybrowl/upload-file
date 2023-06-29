@@ -87,8 +87,8 @@ actor class FileStorage(is_prod : Bool) = this {
 	};
 
 	public shared ({ caller }) func commit_batch(chunk_ids : [Nat], asset_properties : AssetProperties) : async Result.Result<Asset_ID, ErrCommitBatch> {
-		let ASSET_ID = Utils.generate_uuid();
-		let CANISTER_ID = Principal.toText(Principal.fromActor(this));
+		let asset_id = Utils.generate_uuid();
+		let canister_id = Principal.toText(Principal.fromActor(this));
 
 		var chunks_to_commit = Buffer<ChunkInfo>(0);
 
@@ -142,7 +142,7 @@ actor class FileStorage(is_prod : Bool) = this {
 
 		// Create and insert new asset
 		let asset : Types.Asset = {
-			canister_id = CANISTER_ID;
+			canister_id = canister_id;
 			chunks_size = asset_content.size();
 			content = Option.make(toArray(asset_content));
 			content_encoding = asset_properties.content_encoding;
@@ -150,16 +150,16 @@ actor class FileStorage(is_prod : Bool) = this {
 			content_type = asset_properties.content_type;
 			created = Time.now();
 			filename = asset_properties.filename;
-			id = ASSET_ID;
+			id = asset_id;
 			url = Utils.generate_asset_url({
-				asset_id = ASSET_ID;
-				canister_id = CANISTER_ID;
+				asset_id = asset_id;
+				canister_id = canister_id;
 				is_prod = is_prod;
 			});
 			owner = Principal.toText(caller);
 		};
 
-		ignore Map.put(assets, thash, ASSET_ID, asset);
+		ignore Map.put(assets, thash, asset_id, asset);
 		return #ok(asset.id);
 	};
 
