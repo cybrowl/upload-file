@@ -2,6 +2,12 @@
 
 This code is a tutorial on best practices in response to Bounty 45 from ICDevs.
 
+#### WARNING
+
+Please do not use this in Production
+A rewrite is coming soon that will fix many issues.
+Thanks
+
 ## Problem
 
 Uploading large files to the IC has been a challenge due to its 2MB ingress limit. To overcome this issue, you need a custom integration that breaks the file into 2MB chunks and handles the sequential uploading process by calling the IC repeatedly. This will ensure the file can be uploaded successfully to your canister.
